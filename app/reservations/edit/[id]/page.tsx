@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '../../../lib/supabase'
+import {
+  useParams,
+  useRouter
+} from 'next/navigation'
+import { supabase } from '../../../../lib/supabase'
 
 type Customer = {
   id: string
@@ -15,8 +18,13 @@ type Machine = {
   name: string
 }
 
-export default function NewReservationPage() {
+export default function EditReservationPage() {
   const router = useRouter()
+
+  const params = useParams()
+
+  const reservationId =
+    params.id as string
 
   const [customers, setCustomers] =
     useState<Customer[]>([])
@@ -39,6 +47,9 @@ export default function NewReservationPage() {
   const [note, setNote] =
     useState('')
 
+  const [loading, setLoading] =
+    useState(true)
+
   const [saving, setSaving] =
     useState(false)
 
@@ -60,8 +71,41 @@ export default function NewReservationPage() {
         .eq('active', true)
         .order('name')
 
+    const { data: reservation } =
+      await supabase
+        .from('reservations')
+        .select('*')
+        .eq('id', reservationId)
+        .single()
+
     setCustomers(customersData || [])
     setMachines(machinesData || [])
+
+    if (reservation) {
+      setCustomerId(
+        reservation.customer_id
+      )
+
+      setMachineId(
+        reservation.machine_id
+      )
+
+      setStartDate(
+        reservation.start_date
+          ?.substring(0, 10) || ''
+      )
+
+      setEndDate(
+        reservation.end_date
+          ?.substring(0, 10) || ''
+      )
+
+      setNote(
+        reservation.note || ''
+      )
+    }
+
+    setLoading(false)
   }
 
   async function saveReservation() {
@@ -71,7 +115,9 @@ export default function NewReservationPage() {
       !startDate ||
       !endDate
     ) {
-      alert('Vyplň všechna povinná pole')
+      alert(
+        'Vyplň všechna povinná pole'
+      )
       return
     }
 
@@ -82,6 +128,7 @@ export default function NewReservationPage() {
         .from('reservations')
         .select('id')
         .eq('machine_id', machineId)
+        .neq('id', reservationId)
         .lte('start_date', endDate)
         .gte('end_date', startDate)
 
@@ -92,6 +139,7 @@ export default function NewReservationPage() {
       alert(
         'Stroj je v tomto termínu již rezervován.'
       )
+
       setSaving(false)
       return
     }
@@ -99,15 +147,14 @@ export default function NewReservationPage() {
     const { error } =
       await supabase
         .from('reservations')
-        .insert([
-          {
-            customer_id: customerId,
-            machine_id: machineId,
-            start_date: startDate,
-            end_date: endDate,
-            note
-          }
-        ])
+        .update({
+          customer_id: customerId,
+          machine_id: machineId,
+          start_date: startDate,
+          end_date: endDate,
+          note
+        })
+        .eq('id', reservationId)
 
     if (error) {
       alert(error.message)
@@ -115,9 +162,21 @@ export default function NewReservationPage() {
       return
     }
 
-    alert('Rezervace vytvořena')
+    alert(
+      'Rezervace upravena'
+    )
 
-    router.push('/reservations')
+    router.push(
+      '/reservations'
+    )
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        Načítám...
+      </main>
+    )
   }
 
   return (
@@ -128,7 +187,7 @@ export default function NewReservationPage() {
         <div className="bg-white rounded-3xl shadow-lg p-8">
 
           <h1 className="text-4xl font-bold mb-8">
-            Nová rezervace
+            Upravit rezervaci
           </h1>
 
           <div className="grid gap-6">
@@ -295,7 +354,7 @@ export default function NewReservationPage() {
             >
               {saving
                 ? 'Ukládám...'
-                : 'Vytvořit rezervaci'}
+                : 'Uložit změny'}
             </button>
 
           </div>
