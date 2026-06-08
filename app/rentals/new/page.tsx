@@ -11,7 +11,6 @@ import { supabase } from '../../../lib/supabase'
 
 import { Html5QrcodeScanner } from 'html5-qrcode'
 
-import Tesseract from 'tesseract.js'
 
 import SignaturePad from '../../../components/SignaturePad'
 
@@ -21,7 +20,6 @@ import {
   QrCode,
   FileText,
   Clock3,
-  Camera,
   CheckCircle2,
   AlertCircle,
   Search
@@ -117,8 +115,6 @@ export default function NewRentalPage() {
   const [scannerOpen, setScannerOpen] =
     useState(false)
 
-  const [loadingOCR, setLoadingOCR] =
-    useState(false)
 
   const [signature, setSignature] =
     useState('')
@@ -270,107 +266,6 @@ export default function NewRentalPage() {
         'success',
         'Zákazník načten'
       )
-    }
-  }
-
-  async function handleOCR(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-
-    const file = event.target.files?.[0]
-
-    if (!file) return
-
-    setLoadingOCR(true)
-
-    try {
-
-      const result =
-        await Tesseract.recognize(
-          file,
-          'eng'
-        )
-
-      const text =
-        result.data.text
-
-      const lines =
-        text
-          .split('\n')
-          .filter(
-            line =>
-              line.trim() !== ''
-          )
-
-      const cleanedLines =
-        lines.filter(line => {
-
-          const upper =
-            line.toUpperCase()
-
-          return (
-            !upper.includes('CZECH') &&
-            !upper.includes('REPUBLIC') &&
-            !upper.includes('OBČANSK') &&
-            !upper.includes('IDENTITY') &&
-            !upper.includes('CARD')
-          )
-        })
-
-      const possibleName =
-        cleanedLines.find(
-          line => {
-
-            const words =
-              line.trim().split(' ')
-
-            return (
-              words.length >= 2 &&
-              words.every(
-                word =>
-                  /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/i.test(word)
-              )
-            )
-          }
-        )
-
-      if (possibleName) {
-
-        const parts =
-          possibleName.split(' ')
-
-        setCustomerName(parts[0])
-
-        setCustomerLastName(
-          parts.slice(1).join(' ')
-        )
-      }
-
-      const idMatch =
-        text.match(/[A-Z0-9]{6,20}/)
-
-      if (idMatch) {
-
-        setIdCard(idMatch[0])
-      }
-
-      showStatus(
-        'success',
-        'OCR občanky dokončeno'
-      )
-
-    } catch (error) {
-
-      console.log(error)
-
-      showStatus(
-        'error',
-        'OCR chyba'
-      )
-
-    } finally {
-
-      setLoadingOCR(false)
     }
   }
 
@@ -775,39 +670,6 @@ export default function NewRentalPage() {
 
         <div className="bg-white rounded-3xl shadow-lg p-6 lg:p-8 space-y-6">
 
-          <div className="border-2 border-dashed border-gray-300 rounded-3xl p-5 bg-gray-50">
-
-            <div className="flex items-center gap-3 mb-4">
-
-              <Camera size={22} />
-
-              <h2 className="text-xl font-bold">
-
-                Vyfotit občanku
-
-              </h2>
-
-            </div>
-
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleOCR}
-              className="block w-full text-sm"
-            />
-
-            {loadingOCR && (
-
-              <p className="mt-3 text-sm text-gray-500">
-
-                Probíhá OCR...
-
-              </p>
-
-            )}
-
-          </div>
 
           <div>
 
@@ -882,6 +744,18 @@ export default function NewRentalPage() {
 
               )
             )}
+
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-3xl p-5 text-blue-800">
+
+            <div className="font-semibold mb-1">
+              Údaje zákazníka
+            </div>
+
+            <p className="text-sm">
+              Údaje vyplň ručně. Telefon slouží i pro vyhledání existujícího zákazníka.
+            </p>
 
           </div>
 
