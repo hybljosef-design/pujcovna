@@ -4,6 +4,8 @@ import { CONTRACT_TEMPLATE } from './contractTemplate'
 
 type GenerateContractParams = {
 
+  contractNumber: string
+
   customerName: string
 
   customerLastName: string
@@ -77,6 +79,7 @@ async function loadLogo(): Promise<string> {
 }
 
 export async function generateContractPdf({
+  contractNumber,
   customerName,
   customerLastName,
   phone,
@@ -94,10 +97,6 @@ export async function generateContractPdf({
   signature
 }: GenerateContractParams) {
 
-  /*
-    LOAD ASSETS
-  */
-
   const regularFont =
     await loadFont('/fonts/Roboto-Regular.ttf')
 
@@ -110,19 +109,11 @@ export async function generateContractPdf({
   const logoBase64 =
     await loadLogo()
 
-  /*
-    PDF
-  */
-
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4'
   })
-
-  /*
-    WHITE PAGE
-  */
 
   doc.setFillColor(255, 255, 255)
 
@@ -133,10 +124,6 @@ export async function generateContractPdf({
     297,
     'F'
   )
-
-  /*
-    REGISTER FONTS
-  */
 
   doc.addFileToVFS(
     'Roboto-Regular.ttf',
@@ -171,36 +158,17 @@ export async function generateContractPdf({
     'bold'
   )
 
-  /*
-    COLORS
-  */
-
   const black = 25
 
   const gray = 95
 
   const lightGray = 225
 
-  /*
-    LAYOUT
-  */
-
   const left = 16
 
   const right = 194
 
   let y = 16
-
-  /*
-    CONTRACT NUMBER
-  */
-
-  const contractNumber =
-    `SML-${Date.now()}`
-
-  /*
-    HEADER
-  */
 
   doc.addImage(
     logoBase64,
@@ -260,10 +228,6 @@ export async function generateContractPdf({
 
   y += 10
 
-  /*
-    TITLE
-  */
-
   doc.setFont(
     'Roboto',
     'bold'
@@ -296,10 +260,6 @@ export async function generateContractPdf({
 
   y += 10
 
-  /*
-    PARTIES
-  */
-
   doc.setFont(
     'Roboto',
     'medium'
@@ -331,10 +291,6 @@ export async function generateContractPdf({
   doc.setFontSize(9.5)
 
   doc.setTextColor(black)
-
-  /*
-    LEFT
-  */
 
   doc.text(
     CONTRACT_TEMPLATE.company.name,
@@ -422,10 +378,6 @@ export async function generateContractPdf({
 
   y += 12
 
-  /*
-    RENTAL DETAILS
-  */
-
   doc.setDrawColor(lightGray)
 
   doc.rect(
@@ -435,23 +387,11 @@ export async function generateContractPdf({
     38
   )
 
-  /*
-    ROWS
-  */
-
   doc.line(left, y + 9.5, right, y + 9.5)
   doc.line(left, y + 19, right, y + 19)
   doc.line(left, y + 28.5, right, y + 28.5)
 
-  /*
-    COLUMN
-  */
-
   doc.line(72, y, 72, y + 38)
-
-  /*
-    LABELS
-  */
 
   doc.setFont(
     'Roboto',
@@ -466,10 +406,6 @@ export async function generateContractPdf({
   doc.text('Začátek půjčky', 20, y + 15.5)
   doc.text('Konec půjčky', 20, y + 25)
   doc.text('Cena / Kauce / Dny', 20, y + 34)
-
-  /*
-    VALUES
-  */
 
   doc.setFont(
     'Roboto',
@@ -505,10 +441,6 @@ export async function generateContractPdf({
   )
 
   y += 50
-
-  /*
-    LEGAL TEXT
-  */
 
   CONTRACT_TEMPLATE.legalText.forEach(
     (section) => {
@@ -557,10 +489,6 @@ export async function generateContractPdf({
     }
   )
 
-  /*
-    SIGNATURES
-  */
-
   y += 8
 
   doc.setDrawColor(lightGray)
@@ -578,10 +506,6 @@ export async function generateContractPdf({
     182,
     y
   )
-
-  /*
-    SIGNATURE IMAGE
-  */
 
   if (signature) {
 
@@ -618,10 +542,6 @@ export async function generateContractPdf({
     y
   )
 
-  /*
-    FOOTER
-  */
-
   doc.setDrawColor(lightGray)
 
   doc.line(
@@ -652,11 +572,7 @@ export async function generateContractPdf({
     287
   )
 
-  /*
-    SAVE
-  */
-
   doc.save(
-    `smlouva-${customerLastName}.pdf`
+    `smlouva-${contractNumber}-${customerLastName}.pdf`
   )
 }

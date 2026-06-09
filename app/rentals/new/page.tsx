@@ -537,6 +537,72 @@ export default function NewRentalPage() {
         selectedMachineData.daily_price
       : 0
 
+  async function createContractNumber() {
+
+    const currentYear =
+      new Date().getFullYear()
+
+    const { data, error } =
+      await supabase
+        .from('contract_counters')
+        .select('*')
+        .eq('id', 'main')
+        .maybeSingle()
+
+    if (error) {
+
+      throw new Error(
+        error.message
+      )
+    }
+
+    if (!data) {
+
+      const { error: insertError } =
+        await supabase
+          .from('contract_counters')
+          .insert([
+            {
+              id: 'main',
+              year: currentYear,
+              last_number: 1
+            }
+          ])
+
+      if (insertError) {
+
+        throw new Error(
+          insertError.message
+        )
+      }
+
+      return `SML-${currentYear}-0001`
+    }
+
+    const nextNumber =
+      data.year === currentYear
+        ? Number(data.last_number || 0) + 1
+        : 1
+
+    const { error: updateError } =
+      await supabase
+        .from('contract_counters')
+        .update({
+          year: currentYear,
+          last_number: nextNumber
+        })
+        .eq('id', 'main')
+
+    if (updateError) {
+
+      throw new Error(
+        updateError.message
+      )
+    }
+
+    return `SML-${currentYear}-${String(nextNumber).padStart(4, '0')}`
+  }
+
   async function createRental() {
 
     if (!selectedMachine) {
@@ -715,6 +781,28 @@ export default function NewRentalPage() {
       customerId = customer.id
     }
 
+    let contractNumber = ''
+
+    try {
+
+      contractNumber =
+        await createContractNumber()
+
+    } catch (error: any) {
+
+      console.log(error)
+
+      showStatus(
+        'error',
+        error.message ||
+        'Chyba při vytváření čísla smlouvy'
+      )
+
+      setLoading(false)
+
+      return
+    }
+
     const {
       error: rentalError
     } = await supabase
@@ -727,7 +815,8 @@ export default function NewRentalPage() {
           deposit: machine.deposit,
           start_date: startDate,
           end_date: endDate,
-          returned: false
+          returned: false,
+          contract_number: contractNumber
         }
       ])
 
@@ -751,6 +840,7 @@ export default function NewRentalPage() {
       .eq('id', machine.id)
 
     await generateContractPdf({
+      contractNumber,
       customerName,
       customerLastName,
       phone,
