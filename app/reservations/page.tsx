@@ -180,6 +180,31 @@ export default function ReservationsPage() {
 
       <div className="max-w-7xl mx-auto">
 
+        <div className="mb-6">
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/dashboard'
+            }}
+            className="
+              bg-white
+              hover:bg-gray-50
+              border
+              px-4
+              py-2
+              rounded-xl
+              shadow-sm
+              font-medium
+            "
+          >
+
+            🏠 Domů
+
+          </button>
+
+        </div>
+
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
 
           <div>

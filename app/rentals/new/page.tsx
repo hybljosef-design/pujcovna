@@ -7,6 +7,8 @@ import {
   useState
 } from 'react'
 
+import Link from 'next/link'
+
 import { supabase } from '../../../lib/supabase'
 
 import { Html5QrcodeScanner } from 'html5-qrcode'
@@ -914,6 +916,19 @@ export default function NewRentalPage() {
     <main className="min-h-screen bg-gray-100 p-4 lg:p-8">
 
       <div className="max-w-4xl mx-auto">
+
+        <div className="mb-6">
+
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border px-4 py-2 rounded-xl shadow-sm font-medium"
+          >
+
+            🏠 Domů
+
+          </Link>
+
+        </div>
 
         {statusMessage && (
 

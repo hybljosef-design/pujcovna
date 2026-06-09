@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { supabase } from '../../lib/supabase'
 
@@ -95,11 +96,24 @@ export default function CalendarPage() {
 
       <main className="min-h-screen bg-gray-100 p-10">
 
-        <div className="bg-white rounded-3xl p-10 shadow-lg">
+        <div className="max-w-7xl mx-auto">
 
-          <h1 className="text-3xl font-bold">
-            Načítám kalendář...
-          </h1>
+          <div className="mb-6">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border px-4 py-2 rounded-xl shadow-sm font-medium"
+            >
+              🏠 Domů
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-3xl p-10 shadow-lg">
+
+            <h1 className="text-3xl font-bold">
+              Načítám kalendář...
+            </h1>
+
+          </div>
 
         </div>
 
@@ -112,6 +126,15 @@ export default function CalendarPage() {
     <main className="min-h-screen bg-gray-100 p-6 lg:p-10">
 
       <div className="max-w-7xl mx-auto">
+
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border px-4 py-2 rounded-xl shadow-sm font-medium"
+          >
+            🏠 Domů
+          </Link>
+        </div>
 
         <div className="flex items-center gap-4 mb-10">
 
