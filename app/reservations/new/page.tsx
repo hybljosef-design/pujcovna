@@ -26,6 +26,10 @@ type Customer = {
   last_name: string
   phone: string
   id_card?: string
+  street?: string
+  house_number?: string
+  zip?: string
+  city?: string
 }
 
 type Machine = {
@@ -113,6 +117,18 @@ export default function NewReservationPage() {
     useState('')
 
   const [idCard, setIdCard] =
+    useState('')
+
+  const [street, setStreet] =
+    useState('')
+
+  const [houseNumber, setHouseNumber] =
+    useState('')
+
+  const [zip, setZip] =
+    useState('')
+
+  const [city, setCity] =
     useState('')
 
   const [startDate, setStartDate] =
@@ -270,6 +286,22 @@ export default function NewReservationPage() {
         existingCustomer.id_card || ''
       )
 
+      setStreet(
+        existingCustomer.street || ''
+      )
+
+      setHouseNumber(
+        existingCustomer.house_number || ''
+      )
+
+      setZip(
+        existingCustomer.zip || ''
+      )
+
+      setCity(
+        existingCustomer.city || ''
+      )
+
       showStatus(
         'success',
         'Zákazník načten podle telefonu'
@@ -347,6 +379,31 @@ export default function NewReservationPage() {
 
     if (customerId) {
 
+      const { error } =
+        await supabase
+          .from('customers')
+          .update({
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: normalizedPhone,
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
+          })
+          .eq(
+            'id',
+            customerId
+          )
+
+      if (error) {
+
+        throw new Error(
+          error.message
+        )
+      }
+
       return customerId
     }
 
@@ -356,6 +413,31 @@ export default function NewReservationPage() {
       )
 
     if (existingCustomer) {
+
+      const { error } =
+        await supabase
+          .from('customers')
+          .update({
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: normalizedPhone,
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
+          })
+          .eq(
+            'id',
+            existingCustomer.id
+          )
+
+      if (error) {
+
+        throw new Error(
+          error.message
+        )
+      }
 
       return existingCustomer.id
     }
@@ -371,7 +453,11 @@ export default function NewReservationPage() {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: normalizedPhone,
-            id_card: idCard.trim()
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
           }
         ])
         .select()
@@ -788,6 +874,126 @@ export default function NewReservationPage() {
                       bg-white
                     "
                   />
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-5">
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Ulice
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={street}
+                      onChange={(e) =>
+                        setStreet(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Číslo popisné
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={houseNumber}
+                      onChange={(e) =>
+                        setHouseNumber(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-5">
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      PSČ
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={zip}
+                      onChange={(e) =>
+                        setZip(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Město
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) =>
+                        setCity(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
 
                 </div>
 

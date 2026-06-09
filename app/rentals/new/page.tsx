@@ -40,6 +40,10 @@ type Customer = {
   last_name: string
   phone: string
   id_card: string
+  street?: string
+  house_number?: string
+  zip?: string
+  city?: string
 }
 
 function createDefaultDates() {
@@ -104,6 +108,18 @@ export default function NewRentalPage() {
     useState('')
 
   const [idCard, setIdCard] =
+    useState('')
+
+  const [street, setStreet] =
+    useState('')
+
+  const [houseNumber, setHouseNumber] =
+    useState('')
+
+  const [zip, setZip] =
+    useState('')
+
+  const [city, setCity] =
     useState('')
 
   const [startDate, setStartDate] =
@@ -315,6 +331,22 @@ export default function NewRentalPage() {
       data.customers?.id_card || ''
     )
 
+    setStreet(
+      data.customers?.street || ''
+    )
+
+    setHouseNumber(
+      data.customers?.house_number || ''
+    )
+
+    setZip(
+      data.customers?.zip || ''
+    )
+
+    setCity(
+      data.customers?.city || ''
+    )
+
     const formatDateTimeLocal =
       (value: string) => {
 
@@ -385,6 +417,22 @@ export default function NewRentalPage() {
       setCustomerLastName(customer.last_name)
 
       setIdCard(customer.id_card)
+
+      setStreet(
+        customer.street || ''
+      )
+
+      setHouseNumber(
+        customer.house_number || ''
+      )
+
+      setZip(
+        customer.zip || ''
+      )
+
+      setCity(
+        customer.city || ''
+      )
 
       showStatus(
         'success',
@@ -603,6 +651,33 @@ export default function NewRentalPage() {
       customerId =
         existingCustomer.id
 
+      const { error: updateCustomerError } =
+        await supabase
+          .from('customers')
+          .update({
+            first_name: customerName,
+            last_name: customerLastName,
+            phone,
+            id_card: idCard,
+            street,
+            house_number: houseNumber,
+            zip,
+            city
+          })
+          .eq('id', customerId)
+
+      if (updateCustomerError) {
+
+        showStatus(
+          'error',
+          'Chyba aktualizace zákazníka'
+        )
+
+        setLoading(false)
+
+        return
+      }
+
     } else {
 
       const {
@@ -615,7 +690,11 @@ export default function NewRentalPage() {
             first_name: customerName,
             last_name: customerLastName,
             phone,
-            id_card: idCard
+            id_card: idCard,
+            street,
+            house_number: houseNumber,
+            zip,
+            city
           }
         ])
         .select()
@@ -676,6 +755,10 @@ export default function NewRentalPage() {
       customerLastName,
       phone,
       idCard,
+      street,
+      houseNumber,
+      zip,
+      city,
       machineName: machine.name,
       startDate,
       endDate,
@@ -716,6 +799,10 @@ export default function NewRentalPage() {
     setCustomerLastName('')
     setPhone('')
     setIdCard('')
+    setStreet('')
+    setHouseNumber('')
+    setZip('')
+    setCity('')
     setSelectedMachine('')
     setMachineSearch('')
     setStartDate(newDates.start)
@@ -989,6 +1076,98 @@ export default function NewRentalPage() {
               }
               className="w-full border rounded-2xl p-4"
             />
+
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+
+                Ulice
+
+              </label>
+
+              <input
+                type="text"
+                value={street}
+                onChange={(e) =>
+                  setStreet(
+                    e.target.value
+                  )
+                }
+                className="w-full border rounded-2xl p-4"
+              />
+
+            </div>
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+
+                Číslo popisné
+
+              </label>
+
+              <input
+                type="text"
+                value={houseNumber}
+                onChange={(e) =>
+                  setHouseNumber(
+                    e.target.value
+                  )
+                }
+                className="w-full border rounded-2xl p-4"
+              />
+
+            </div>
+
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+
+                PSČ
+
+              </label>
+
+              <input
+                type="text"
+                value={zip}
+                onChange={(e) =>
+                  setZip(
+                    e.target.value
+                  )
+                }
+                className="w-full border rounded-2xl p-4"
+              />
+
+            </div>
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+
+                Město
+
+              </label>
+
+              <input
+                type="text"
+                value={city}
+                onChange={(e) =>
+                  setCity(
+                    e.target.value
+                  )
+                }
+                className="w-full border rounded-2xl p-4"
+              />
+
+            </div>
 
           </div>
 

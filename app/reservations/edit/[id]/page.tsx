@@ -26,6 +26,10 @@ type Customer = {
   last_name: string
   phone: string
   id_card?: string
+  street?: string
+  house_number?: string
+  zip?: string
+  city?: string
 }
 
 type Machine = {
@@ -132,6 +136,18 @@ export default function EditReservationPage() {
   const [idCard, setIdCard] =
     useState('')
 
+  const [street, setStreet] =
+    useState('')
+
+  const [houseNumber, setHouseNumber] =
+    useState('')
+
+  const [zip, setZip] =
+    useState('')
+
+  const [city, setCity] =
+    useState('')
+
   const [startDate, setStartDate] =
     useState('')
 
@@ -216,7 +232,11 @@ export default function EditReservationPage() {
             first_name,
             last_name,
             phone,
-            id_card
+            id_card,
+            street,
+            house_number,
+            zip,
+            city
           ),
           machines (
             id,
@@ -287,6 +307,22 @@ export default function EditReservationPage() {
 
     setIdCard(
       customer?.id_card || ''
+    )
+
+    setStreet(
+      customer?.street || ''
+    )
+
+    setHouseNumber(
+      customer?.house_number || ''
+    )
+
+    setZip(
+      customer?.zip || ''
+    )
+
+    setCity(
+      customer?.city || ''
     )
 
     setStartDate(
@@ -393,6 +429,22 @@ export default function EditReservationPage() {
         existingCustomer.id_card || ''
       )
 
+      setStreet(
+        existingCustomer.street || ''
+      )
+
+      setHouseNumber(
+        existingCustomer.house_number || ''
+      )
+
+      setZip(
+        existingCustomer.zip || ''
+      )
+
+      setCity(
+        existingCustomer.city || ''
+      )
+
       showStatus(
         'success',
         'Zákazník načten podle telefonu'
@@ -471,7 +523,11 @@ export default function EditReservationPage() {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: normalizedPhone,
-            id_card: idCard.trim()
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
           })
           .eq(
             'id',
@@ -502,7 +558,11 @@ export default function EditReservationPage() {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: normalizedPhone,
-            id_card: idCard.trim()
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
           })
           .eq(
             'id',
@@ -530,7 +590,11 @@ export default function EditReservationPage() {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: normalizedPhone,
-            id_card: idCard.trim()
+            id_card: idCard.trim(),
+            street: street.trim(),
+            house_number: houseNumber.trim(),
+            zip: zip.trim(),
+            city: city.trim()
           }
         ])
         .select()
@@ -988,6 +1052,126 @@ export default function EditReservationPage() {
                       bg-white
                     "
                   />
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-5">
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Ulice
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={street}
+                      onChange={(e) =>
+                        setStreet(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Číslo popisné
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={houseNumber}
+                      onChange={(e) =>
+                        setHouseNumber(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-5">
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      PSČ
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={zip}
+                      onChange={(e) =>
+                        setZip(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <label className="block mb-2 font-semibold">
+
+                      Město
+
+                    </label>
+
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) =>
+                        setCity(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Volitelné"
+                      className="
+                        w-full
+                        border
+                        rounded-2xl
+                        p-4
+                        bg-white
+                      "
+                    />
+
+                  </div>
 
                 </div>
 

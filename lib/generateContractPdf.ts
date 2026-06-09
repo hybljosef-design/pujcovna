@@ -12,6 +12,14 @@ type GenerateContractParams = {
 
   idCard: string
 
+  street?: string
+
+  houseNumber?: string
+
+  zip?: string
+
+  city?: string
+
   machineName: string
 
   startDate: string
@@ -73,6 +81,10 @@ export async function generateContractPdf({
   customerLastName,
   phone,
   idCard,
+  street,
+  houseNumber,
+  zip,
+  city,
   machineName,
   startDate,
   endDate,
@@ -372,6 +384,25 @@ export async function generateContractPdf({
     y
   )
 
+  const streetLine =
+    [street, houseNumber]
+      .filter(Boolean)
+      .join(' ')
+
+  const cityLine =
+    [zip, city]
+      .filter(Boolean)
+      .join(' ')
+
+  if (streetLine) {
+
+    doc.text(
+      streetLine,
+      110,
+      y
+    )
+  }
+
   y += 5
 
   doc.text(
@@ -379,6 +410,15 @@ export async function generateContractPdf({
     left,
     y
   )
+
+  if (cityLine) {
+
+    doc.text(
+      cityLine,
+      110,
+      y
+    )
+  }
 
   y += 12
 
