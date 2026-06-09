@@ -9,13 +9,90 @@ import {
   ClipboardList,
   Wrench,
   AlertTriangle,
-  CalendarDays
+  CalendarDays,
+  Phone,
+  User,
+  Clock3
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
 
-export default function DashboardPage() {
+type ActiveRental = {
+  id: string
+  start_date: string
+  end_date: string
+  rental_price: number
+  deposit: number
+  customers:
+    | {
+        first_name: string
+        last_name: string
+        phone: string
+      }
+    | {
+        first_name: string
+        last_name: string
+        phone: string
+      }[]
+    | null
+  machines:
+    | {
+        name: string
+      }
+    | {
+        name: string
+      }[]
+    | null
+}
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('cs-CZ')
+}
+
+function isOverdue(value: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const end = new Date(value)
+  end.setHours(0, 0, 0, 0)
+
+  return end < today
+}
+
+
+function getCustomer(
+  rental: ActiveRental
+) {
+
+  if (
+    Array.isArray(
+      rental.customers
+    )
+  ) {
+
+    return rental.customers[0] || null
+  }
+
+  return rental.customers
+}
+
+function getMachine(
+  rental: ActiveRental
+) {
+
+  if (
+    Array.isArray(
+      rental.machines
+    )
+  ) {
+
+    return rental.machines[0] || null
+  }
+
+  return rental.machines
+}
+
+export default function DashboardPage() {
   const [activeRentals, setActiveRentals] =
     useState(0)
 
@@ -31,11 +108,18 @@ export default function DashboardPage() {
   const [overdue, setOverdue] =
     useState(0)
 
+  const [activeRentalList, setActiveRentalList] =
+    useState<ActiveRental[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
   useEffect(() => {
     loadDashboard()
   }, [])
 
   async function loadDashboard() {
+    setLoading(true)
 
     const [
       rentalsResult,
@@ -43,7 +127,6 @@ export default function DashboardPage() {
       customersResult,
       reservationsResult
     ] = await Promise.all([
-
       supabase
         .from('rentals')
         .select('*', {
@@ -72,7 +155,6 @@ export default function DashboardPage() {
           count: 'exact',
           head: true
         })
-
     ])
 
     setActiveRentals(
@@ -91,29 +173,59 @@ export default function DashboardPage() {
       reservationsResult.count || 0
     )
 
-    const { data } = await supabase
-      .from('rentals')
-      .select('end_date')
-      .eq('returned', false)
+    const { data, error } =
+      await supabase
+        .from('rentals')
+        .select(`
+          id,
+          start_date,
+          end_date,
+          rental_price,
+          deposit,
+          customers (
+            first_name,
+            last_name,
+            phone
+          ),
+          machines (
+            name
+          )
+        `)
+        .eq('returned', false)
+        .order('end_date', {
+          ascending: true
+        })
 
-    const today =
-      new Date()
+    if (error) {
+      console.log(error)
 
-    const overdueCount =
-      (data || []).filter(
-        rental =>
-          new Date(
-            rental.end_date
-          ) < today
-      ).length
+      setActiveRentalList([])
+      setOverdue(0)
+      setLoading(false)
+
+      return
+    }
+
+    const rentals =
+      (data || []) as unknown as ActiveRental[]
+
+    setActiveRentalList(
+      rentals
+    )
 
     setOverdue(
-      overdueCount
+      rentals.filter(
+        rental =>
+          isOverdue(
+            rental.end_date
+          )
+      ).length
     )
+
+    setLoading(false)
   }
 
   return (
-
     <main className="min-h-screen bg-gray-100 p-4 lg:p-8">
 
       <div className="max-w-7xl mx-auto">
@@ -121,15 +233,11 @@ export default function DashboardPage() {
         <div className="mb-10">
 
           <h1 className="text-5xl font-bold mb-2">
-
             Dashboard
-
           </h1>
 
           <p className="text-gray-500 text-lg">
-
-            Profesionální systém půjčovny strojů
-
+            Provozní přehled půjčovny strojů
           </p>
 
         </div>
@@ -198,7 +306,7 @@ export default function DashboardPage() {
 
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 
           <Link
             href="/rentals/new"
@@ -354,6 +462,238 @@ export default function DashboardPage() {
           </Link>
 
         </div>
+
+        <section className="bg-white rounded-3xl shadow-lg overflow-hidden">
+
+          <div className="p-6 lg:p-8 border-b">
+
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+              <div>
+
+                <h2 className="text-3xl font-bold mb-2">
+                  Aktivní půjčky
+                </h2>
+
+                <p className="text-gray-500">
+                  Provozní seznam s kontaktem na zákazníka
+                </p>
+
+              </div>
+
+              <Link
+                href="/calendar"
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-5
+                  py-3
+                  font-semibold
+                  text-gray-700
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                "
+              >
+
+                <CalendarDays size={18} />
+
+                Otevřít kalendář
+
+              </Link>
+
+            </div>
+
+          </div>
+
+          {loading ? (
+
+            <div className="p-8 text-center text-gray-500">
+              Načítám aktivní půjčky...
+            </div>
+
+          ) : activeRentalList.length === 0 ? (
+
+            <div className="p-8 text-center text-gray-500">
+              Žádné aktivní půjčky
+            </div>
+
+          ) : (
+
+            <div className="divide-y">
+
+              {activeRentalList.map(
+                rental => {
+
+                  const overdueRental =
+                    isOverdue(
+                      rental.end_date
+                    )
+
+                  const customer =
+                    getCustomer(
+                      rental
+                    )
+
+                  const machine =
+                    getMachine(
+                      rental
+                    )
+
+                  const customerName =
+                    customer
+                      ? `${customer.first_name} ${customer.last_name}`
+                      : 'Neznámý zákazník'
+
+                  const phone =
+                    customer?.phone || ''
+
+                  return (
+
+                    <div
+                      key={rental.id}
+                      className={`
+                        p-5
+                        lg:p-6
+                        grid
+                        gap-4
+                        lg:grid-cols-[1.4fr_1fr_1fr_auto]
+                        lg:items-center
+                        ${overdueRental
+                          ? 'bg-red-50'
+                          : 'bg-white'}
+                      `}
+                    >
+
+                      <div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                          <Wrench size={16} />
+
+                          Stroj
+
+                        </div>
+
+                        <div className="text-xl font-bold">
+                          {machine?.name || '-'}
+                        </div>
+
+                      </div>
+
+                      <div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                          <User size={16} />
+
+                          Zákazník
+
+                        </div>
+
+                        <div className="font-semibold">
+                          {customerName}
+                        </div>
+
+                        {phone ? (
+
+                          <a
+                            href={`tel:${phone}`}
+                            className="
+                              mt-2
+                              inline-flex
+                              items-center
+                              gap-2
+                              bg-black
+                              text-white
+                              rounded-xl
+                              px-4
+                              py-2
+                              text-sm
+                              font-semibold
+                            "
+                          >
+
+                            <Phone size={16} />
+
+                            {phone}
+
+                          </a>
+
+                        ) : (
+
+                          <div className="text-sm text-red-500 mt-2">
+                            Telefon chybí
+                          </div>
+
+                        )}
+
+                      </div>
+
+                      <div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                          <Clock3 size={16} />
+
+                          Termín
+
+                        </div>
+
+                        <div className="font-semibold">
+
+                          {formatDate(
+                            rental.start_date
+                          )}
+                          {' '}
+                          –
+                          {' '}
+                          {formatDate(
+                            rental.end_date
+                          )}
+
+                        </div>
+
+                        {overdueRental && (
+
+                          <div className="text-red-600 text-sm font-semibold mt-1">
+                            Po termínu
+                          </div>
+
+                        )}
+
+                      </div>
+
+                      <Link
+                        href="/returns"
+                        className="
+                          bg-gray-100
+                          hover:bg-gray-200
+                          transition
+                          rounded-2xl
+                          px-5
+                          py-3
+                          font-semibold
+                          text-center
+                        "
+                      >
+                        Vrátit
+                      </Link>
+
+                    </div>
+
+                  )
+                }
+              )}
+
+            </div>
+
+          )}
+
+        </section>
 
       </div>
 

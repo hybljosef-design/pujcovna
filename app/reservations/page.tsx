@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+
+import {
+  Phone,
+  User,
+  Wrench,
+  CalendarDays,
+  FileText
+} from 'lucide-react'
+
 import { supabase } from '../../lib/supabase'
 
 type Reservation = {
@@ -12,14 +21,72 @@ type Reservation = {
   end_date: string
   note: string
 
-  customers: {
-    first_name: string
-    last_name: string
-  } | null
+  customers:
+    | {
+        first_name: string
+        last_name: string
+        phone: string
+        id_card?: string
+      }
+    | {
+        first_name: string
+        last_name: string
+        phone: string
+        id_card?: string
+      }[]
+    | null
 
-  machines: {
-    name: string
-  } | null
+  machines:
+    | {
+        name: string
+      }
+    | {
+        name: string
+      }[]
+    | null
+}
+
+function getCustomer(
+  reservation: Reservation
+) {
+
+  if (
+    Array.isArray(
+      reservation.customers
+    )
+  ) {
+
+    return reservation.customers[0] || null
+  }
+
+  return reservation.customers
+}
+
+function getMachine(
+  reservation: Reservation
+) {
+
+  if (
+    Array.isArray(
+      reservation.machines
+    )
+  ) {
+
+    return reservation.machines[0] || null
+  }
+
+  return reservation.machines
+}
+
+function formatDate(
+  value: string
+) {
+
+  return new Date(
+    value
+  ).toLocaleDateString(
+    'cs-CZ'
+  )
 }
 
 export default function ReservationsPage() {
@@ -38,6 +105,8 @@ export default function ReservationsPage() {
 
   async function loadReservations() {
 
+    setLoading(true)
+
     const { data, error } =
       await supabase
         .from('reservations')
@@ -45,7 +114,9 @@ export default function ReservationsPage() {
           *,
           customers (
             first_name,
-            last_name
+            last_name,
+            phone,
+            id_card
           ),
           machines (
             name
@@ -64,10 +135,14 @@ export default function ReservationsPage() {
 
       alert(error.message)
 
+      setLoading(false)
+
       return
     }
 
-    setReservations(data || [])
+    setReservations(
+      (data || []) as unknown as Reservation[]
+    )
 
     setLoading(false)
   }
@@ -105,7 +180,7 @@ export default function ReservationsPage() {
 
       <div className="max-w-7xl mx-auto">
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
 
           <div>
 
@@ -117,7 +192,7 @@ export default function ReservationsPage() {
 
             <p className="text-gray-500">
 
-              Přehled všech rezervací
+              Přehled rezervací včetně kontaktu na zákazníka
 
             </p>
 
@@ -132,6 +207,7 @@ export default function ReservationsPage() {
               py-4
               rounded-2xl
               font-semibold
+              text-center
             "
           >
 
@@ -161,89 +237,397 @@ export default function ReservationsPage() {
 
           ) : (
 
-            <table className="w-full">
+            <div>
 
-              <thead className="bg-gray-50">
+              <div className="hidden lg:block overflow-x-auto">
 
-                <tr>
+                <table className="w-full">
 
-                  <th className="p-4 text-left">
-                    Zákazník
-                  </th>
+                  <thead className="bg-gray-50">
 
-                  <th className="p-4 text-left">
-                    Stroj
-                  </th>
+                    <tr>
 
-                  <th className="p-4 text-left">
-                    Od
-                  </th>
+                      <th className="p-4 text-left">
+                        Zákazník
+                      </th>
 
-                  <th className="p-4 text-left">
-                    Do
-                  </th>
+                      <th className="p-4 text-left">
+                        Kontakt
+                      </th>
 
-                  <th className="p-4 text-left">
-                    Poznámka
-                  </th>
+                      <th className="p-4 text-left">
+                        Stroj
+                      </th>
 
-                  <th className="p-4 text-left">
-                    Akce
-                  </th>
+                      <th className="p-4 text-left">
+                        Od
+                      </th>
 
-                </tr>
+                      <th className="p-4 text-left">
+                        Do
+                      </th>
 
-              </thead>
+                      <th className="p-4 text-left">
+                        Poznámka
+                      </th>
 
-              <tbody>
+                      <th className="p-4 text-left">
+                        Akce
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {reservations.map(
+                      reservation => {
+
+                        const customer =
+                          getCustomer(
+                            reservation
+                          )
+
+                        const machine =
+                          getMachine(
+                            reservation
+                          )
+
+                        const customerName =
+                          customer
+                            ? `${customer.first_name} ${customer.last_name}`
+                            : '-'
+
+                        const phone =
+                          customer?.phone || ''
+
+                        return (
+
+                          <tr
+                            key={reservation.id}
+                            className="border-t"
+                          >
+
+                            <td className="p-4">
+
+                              <div className="font-semibold">
+
+                                {customerName}
+
+                              </div>
+
+                              {customer?.id_card && (
+
+                                <div className="text-sm text-gray-500 mt-1">
+
+                                  OP: {customer.id_card}
+
+                                </div>
+
+                              )}
+
+                            </td>
+
+                            <td className="p-4">
+
+                              {phone ? (
+
+                                <a
+                                  href={`tel:${phone}`}
+                                  className="
+                                    inline-flex
+                                    items-center
+                                    gap-2
+                                    bg-black
+                                    text-white
+                                    px-4
+                                    py-2
+                                    rounded-xl
+                                    text-sm
+                                    font-medium
+                                  "
+                                >
+
+                                  <Phone size={16} />
+
+                                  {phone}
+
+                                </a>
+
+                              ) : (
+
+                                <span className="text-red-500">
+                                  Telefon chybí
+                                </span>
+
+                              )}
+
+                            </td>
+
+                            <td className="p-4">
+
+                              {machine?.name || '-'}
+
+                            </td>
+
+                            <td className="p-4">
+
+                              {formatDate(
+                                reservation.start_date
+                              )}
+
+                            </td>
+
+                            <td className="p-4">
+
+                              {formatDate(
+                                reservation.end_date
+                              )}
+
+                            </td>
+
+                            <td className="p-4 max-w-xs">
+
+                              <div className="line-clamp-2">
+
+                                {reservation.note || '-'}
+
+                              </div>
+
+                            </td>
+
+                            <td className="p-4">
+
+                              <div className="flex flex-wrap gap-2">
+
+                                <Link
+                                  href={`/rentals/new?reservation=${reservation.id}`}
+                                  className="
+                                    bg-black
+                                    text-white
+                                    px-4
+                                    py-2
+                                    rounded-xl
+                                    text-sm
+                                    font-medium
+                                  "
+                                >
+
+                                  Převést
+
+                                </Link>
+
+                                <Link
+                                  href={`/reservations/edit/${reservation.id}`}
+                                  className="
+                                    bg-blue-600
+                                    text-white
+                                    px-4
+                                    py-2
+                                    rounded-xl
+                                    text-sm
+                                    font-medium
+                                  "
+                                >
+
+                                  Upravit
+
+                                </Link>
+
+                                <button
+                                  onClick={() =>
+                                    deleteReservation(
+                                      reservation.id
+                                    )
+                                  }
+                                  className="
+                                    bg-red-600
+                                    text-white
+                                    px-4
+                                    py-2
+                                    rounded-xl
+                                    text-sm
+                                    font-medium
+                                  "
+                                >
+
+                                  Smazat
+
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+
+                        )
+                      }
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              <div className="lg:hidden divide-y">
 
                 {reservations.map(
-                  reservation => (
+                  reservation => {
 
-                    <tr
-                      key={reservation.id}
-                      className="border-t"
-                    >
+                    const customer =
+                      getCustomer(
+                        reservation
+                      )
 
-                      <td className="p-4">
+                    const machine =
+                      getMachine(
+                        reservation
+                      )
 
-                        {reservation.customers
-                          ? `${reservation.customers.first_name} ${reservation.customers.last_name}`
-                          : '-'}
+                    const customerName =
+                      customer
+                        ? `${customer.first_name} ${customer.last_name}`
+                        : 'Neznámý zákazník'
 
-                      </td>
+                    const phone =
+                      customer?.phone || ''
 
-                      <td className="p-4">
+                    return (
 
-                        {reservation.machines?.name || '-'}
+                      <div
+                        key={reservation.id}
+                        className="p-5 space-y-4"
+                      >
 
-                      </td>
+                        <div>
 
-                      <td className="p-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
 
-                        {new Date(
-                          reservation.start_date
-                        ).toLocaleDateString('cs-CZ')}
+                            <User size={16} />
 
-                      </td>
+                            Zákazník
 
-                      <td className="p-4">
+                          </div>
 
-                        {new Date(
-                          reservation.end_date
-                        ).toLocaleDateString('cs-CZ')}
+                          <div className="text-xl font-bold">
 
-                      </td>
+                            {customerName}
 
-                      <td className="p-4">
+                          </div>
 
-                        {reservation.note || '-'}
+                          {customer?.id_card && (
 
-                      </td>
+                            <div className="text-sm text-gray-500 mt-1">
 
-                      <td className="p-4">
+                              OP: {customer.id_card}
 
-                        <div className="flex flex-wrap gap-2">
+                            </div>
+
+                          )}
+
+                          {phone ? (
+
+                            <a
+                              href={`tel:${phone}`}
+                              className="
+                                mt-3
+                                inline-flex
+                                items-center
+                                gap-2
+                                bg-black
+                                text-white
+                                px-4
+                                py-2
+                                rounded-xl
+                                text-sm
+                                font-medium
+                              "
+                            >
+
+                              <Phone size={16} />
+
+                              {phone}
+
+                            </a>
+
+                          ) : (
+
+                            <div className="text-red-500 text-sm mt-2">
+
+                              Telefon chybí
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                        <div>
+
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                            <Wrench size={16} />
+
+                            Stroj
+
+                          </div>
+
+                          <div className="font-semibold">
+
+                            {machine?.name || '-'}
+
+                          </div>
+
+                        </div>
+
+                        <div>
+
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                            <CalendarDays size={16} />
+
+                            Termín
+
+                          </div>
+
+                          <div className="font-semibold">
+
+                            {formatDate(
+                              reservation.start_date
+                            )}
+                            {' '}
+                            –
+                            {' '}
+                            {formatDate(
+                              reservation.end_date
+                            )}
+
+                          </div>
+
+                        </div>
+
+                        <div>
+
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+
+                            <FileText size={16} />
+
+                            Poznámka
+
+                          </div>
+
+                          <div className="text-gray-700">
+
+                            {reservation.note || '-'}
+
+                          </div>
+
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2 pt-2">
 
                           <Link
                             href={`/rentals/new?reservation=${reservation.id}`}
@@ -251,14 +635,15 @@ export default function ReservationsPage() {
                               bg-black
                               text-white
                               px-4
-                              py-2
+                              py-3
                               rounded-xl
                               text-sm
                               font-medium
+                              text-center
                             "
                           >
 
-                            Převést
+                            Převést na půjčku
 
                           </Link>
 
@@ -268,10 +653,11 @@ export default function ReservationsPage() {
                               bg-blue-600
                               text-white
                               px-4
-                              py-2
+                              py-3
                               rounded-xl
                               text-sm
                               font-medium
+                              text-center
                             "
                           >
 
@@ -289,7 +675,7 @@ export default function ReservationsPage() {
                               bg-red-600
                               text-white
                               px-4
-                              py-2
+                              py-3
                               rounded-xl
                               text-sm
                               font-medium
@@ -302,16 +688,15 @@ export default function ReservationsPage() {
 
                         </div>
 
-                      </td>
+                      </div>
 
-                    </tr>
-
-                  )
+                    )
+                  }
                 )}
 
-              </tbody>
+              </div>
 
-            </table>
+            </div>
 
           )}
 

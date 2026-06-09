@@ -82,6 +82,9 @@ export default function NewRentalPage() {
   const phoneInputRef =
     useRef<HTMLInputElement | null>(null)
 
+  const [reservationId, setReservationId] =
+    useState('')
+
   const [machines, setMachines] =
     useState<Machine[]>([])
 
@@ -147,7 +150,29 @@ export default function NewRentalPage() {
 
     loadMachines()
 
+    const params =
+      new URLSearchParams(
+        window.location.search
+      )
+
+    const reservation =
+      params.get('reservation') || ''
+
+    setReservationId(
+      reservation
+    )
+
   }, [])
+
+  useEffect(() => {
+
+    if (!reservationId) return
+
+    loadReservation(
+      reservationId
+    )
+
+  }, [reservationId])
 
   useEffect(() => {
 
@@ -233,6 +258,105 @@ export default function NewRentalPage() {
     }
 
     setMachines(data || [])
+  }
+
+  async function loadReservation(
+    id: string
+  ) {
+
+    const { data, error } =
+      await supabase
+        .from('reservations')
+        .select(`
+          *,
+          customers (
+            *
+          ),
+          machines (
+            *
+          )
+        `)
+        .eq('id', id)
+        .single()
+
+    if (error || !data) {
+
+      console.log(error)
+
+      showStatus(
+        'error',
+        'Rezervaci se nepodařilo načíst'
+      )
+
+      return
+    }
+
+    setSelectedMachine(
+      data.machine_id || ''
+    )
+
+    setMachineSearch(
+      data.machines?.name || ''
+    )
+
+    setCustomerName(
+      data.customers?.first_name || ''
+    )
+
+    setCustomerLastName(
+      data.customers?.last_name || ''
+    )
+
+    setPhone(
+      data.customers?.phone || ''
+    )
+
+    setIdCard(
+      data.customers?.id_card || ''
+    )
+
+    const formatDateTimeLocal =
+      (value: string) => {
+
+        const date =
+          new Date(value)
+
+        const offset =
+          date.getTimezoneOffset()
+
+        const local =
+          new Date(
+            date.getTime() -
+            offset * 60 * 1000
+          )
+
+        return local
+          .toISOString()
+          .slice(0, 16)
+      }
+
+    if (data.start_date) {
+
+      setStartDate(
+        formatDateTimeLocal(
+          data.start_date
+        )
+      )
+    }
+
+    if (data.end_date) {
+
+      setEndDate(
+        formatDateTimeLocal(
+          data.end_date
+        )
+      )
+    }
+
+    showStatus(
+      'success',
+      'Rezervace načtena'
+    )
   }
 
   async function searchCustomer() {
@@ -561,10 +685,29 @@ export default function NewRentalPage() {
       signature
     })
 
+    if (reservationId) {
+
+      await supabase
+        .from('reservations')
+        .delete()
+        .eq(
+          'id',
+          reservationId
+        )
+    }
+
     showStatus(
       'success',
       'Půjčka vytvořena'
     )
+
+    if (reservationId) {
+
+      window.location.href =
+        '/reservations'
+
+      return
+    }
 
     const newDates =
       createDefaultDates()
