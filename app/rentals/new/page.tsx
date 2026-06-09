@@ -834,41 +834,95 @@ export default function NewRentalPage() {
       return
     }
 
-    await supabase
-      .from('machines')
-      .update({
-        status: 'rented'
-      })
-      .eq('id', machine.id)
+    const { error: machineUpdateError } =
+      await supabase
+        .from('machines')
+        .update({
+          status: 'rented'
+        })
+        .eq('id', machine.id)
 
-    await generateContractPdf({
-      contractNumber,
-      customerName,
-      customerLastName,
-      phone,
-      idCard,
-      street,
-      houseNumber,
-      zip,
-      city,
-      machineName: machine.name,
-      startDate,
-      endDate,
-      totalDays,
-      totalPrice,
-      deposit: machine.deposit,
-      signature
-    })
+    if (machineUpdateError) {
+
+      console.log(machineUpdateError)
+
+      showStatus(
+        'error',
+        'Půjčka vznikla, ale nepodařilo se aktualizovat stav stroje'
+      )
+
+      setLoading(false)
+
+      return
+    }
 
     if (reservationId) {
 
-      await supabase
-        .from('reservations')
-        .delete()
-        .eq(
-          'id',
-          reservationId
+      const { error: reservationDeleteError } =
+        await supabase
+          .from('reservations')
+          .delete()
+          .eq(
+            'id',
+            reservationId
+          )
+
+      if (reservationDeleteError) {
+
+        console.log(reservationDeleteError)
+
+        showStatus(
+          'error',
+          'Půjčka vznikla, ale rezervaci se nepodařilo smazat'
         )
+
+        setLoading(false)
+
+        return
+      }
+    }
+
+    try {
+
+      await generateContractPdf({
+        contractNumber,
+        customerName,
+        customerLastName,
+        phone,
+        idCard,
+        street,
+        houseNumber,
+        zip,
+        city,
+        machineName: machine.name,
+        startDate,
+        endDate,
+        totalDays,
+        totalPrice,
+        deposit: machine.deposit,
+        signature
+      })
+
+    } catch (error) {
+
+      console.log(error)
+
+      showStatus(
+        'success',
+        'Půjčka vytvořena. PDF se na tomto zařízení nepodařilo stáhnout.'
+      )
+
+      if (reservationId) {
+
+        window.location.href =
+          '/reservations'
+
+        return
+      }
+
+      setLoading(false)
+
+      return
     }
 
     showStatus(
