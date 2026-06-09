@@ -63,21 +63,21 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-gray-100 flex">
+      <main className="min-h-screen bg-gray-100 flex flex-col lg:flex-row">
         <Sidebar />
 
-        <div className="flex-1 p-6 lg:p-10">
+        <div className="flex-1 min-w-0 w-full p-4 lg:p-10">
 
           <div className="mb-8">
             <UserMenu />
           </div>
 
           <div className="mb-10">
-            <h1 className="text-5xl font-bold mb-3">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-3">
               Dashboard
             </h1>
 
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 text-base lg:text-lg">
               Profesionální systém půjčovny strojů
             </p>
           </div>
