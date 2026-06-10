@@ -139,6 +139,9 @@ export default function NewRentalPage() {
   const [rentalDeposit, setRentalDeposit] =
     useState('')
 
+  const [rentalNote, setRentalNote] =
+    useState('')
+
   const [loading, setLoading] =
     useState(false)
 
@@ -500,6 +503,10 @@ export default function NewRentalPage() {
 
     setCity(
       data.customers?.city || ''
+    )
+
+    setRentalNote(
+      data.note || ''
     )
 
     const formatDateTimeLocal =
@@ -1016,7 +1023,8 @@ export default function NewRentalPage() {
           start_date: startDate,
           end_date: endDate,
           returned: false,
-          contract_number: contractNumber
+          contract_number: contractNumber,
+          note: rentalNote.trim()
         }
       ])
 
@@ -1153,6 +1161,7 @@ export default function NewRentalPage() {
     setEndDate(newDates.end)
     setRentalPrice('')
     setRentalDeposit('')
+    setRentalNote('')
     setSignature('')
     setScannerOpen(false)
 
@@ -1702,6 +1711,34 @@ export default function NewRentalPage() {
                 </p>
 
               </div>
+
+            </div>
+
+            <div>
+
+              <label className="block mb-2 font-semibold">
+
+                Poznámka k půjčce
+
+              </label>
+
+              <textarea
+                value={rentalNote}
+                onChange={(e) =>
+                  setRentalNote(
+                    e.target.value
+                  )
+                }
+                rows={3}
+                placeholder="Např. půldenní půjčení, bez kauce, sleva pro stálého zákazníka..."
+                className="w-full border rounded-2xl p-4 bg-white"
+              />
+
+              <p className="text-sm text-gray-500 mt-2">
+
+                Poznámka je interní a pomůže později vysvětlit jinou cenu nebo kauci.
+
+              </p>
 
             </div>
 
