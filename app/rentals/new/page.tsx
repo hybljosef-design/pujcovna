@@ -11,7 +11,7 @@ import Link from 'next/link'
 
 import { supabase } from '../../../lib/supabase'
 
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { Html5Qrcode } from 'html5-qrcode'
 
 
 import SignaturePad from '../../../components/SignaturePad'
@@ -88,6 +88,9 @@ export default function NewRentalPage() {
   const phoneInputRef =
     useRef<HTMLInputElement | null>(null)
 
+  const scannerRef =
+    useRef<Html5Qrcode | null>(null)
+
   const [reservationId, setReservationId] =
     useState('')
 
@@ -136,6 +139,8 @@ export default function NewRentalPage() {
   const [scannerOpen, setScannerOpen] =
     useState(false)
 
+  const [scannerStarting, setScannerStarting] =
+    useState(false)
 
   const [signature, setSignature] =
     useState('')
@@ -194,67 +199,136 @@ export default function NewRentalPage() {
 
   useEffect(() => {
 
-    if (!scannerOpen) return
-
-    const scanner = new Html5QrcodeScanner(
-      'reader',
-      {
-        fps: 10,
-        qrbox: {
-          width: 250,
-          height: 250
-        }
-      },
-      false
-    )
-
-    scanner.render(
-
-      async (decodedText) => {
-
-        const machine = machines.find(
-          (m) =>
-            m.barcode?.toLowerCase() === decodedText.toLowerCase()
-        )
-
-        if (machine) {
-
-          setSelectedMachine(machine.id)
-
-          setMachineSearch(machine.name)
-
-          showStatus(
-            'success',
-            `Načten stroj: ${machine.name}`
-          )
-
-          setScannerOpen(false)
-
-          scanner.clear()
-
-          setTimeout(() => {
-
-            phoneInputRef.current?.focus()
-
-          }, 300)
-
-        } else {
-
-          showStatus(
-            'error',
-            'Stroj nenalezen'
-          )
-        }
-      },
-
-      () => {}
-    )
-
     return () => {
-      scanner.clear().catch(() => {})
+
+      stopScanner()
     }
 
-  }, [scannerOpen, machines])
+  }, [])
+
+  async function stopScanner() {
+
+    const scanner =
+      scannerRef.current
+
+    if (!scanner) return
+
+    try {
+
+      if (scanner.isScanning) {
+
+        await scanner.stop()
+      }
+
+      await scanner.clear()
+
+    } catch (error) {
+
+      console.log(error)
+    }
+
+    scannerRef.current = null
+  }
+
+  async function openScanner() {
+
+    if (scannerOpen) {
+
+      await stopScanner()
+
+      setScannerOpen(false)
+
+      return
+    }
+
+    setScannerOpen(true)
+
+    setScannerStarting(true)
+
+    setTimeout(async () => {
+
+      try {
+
+        const scanner =
+          new Html5Qrcode('reader')
+
+        scannerRef.current =
+          scanner
+
+        await scanner.start(
+          {
+            facingMode: {
+              ideal: 'environment'
+            }
+          },
+          {
+            fps: 10,
+            qrbox: {
+              width: 250,
+              height: 250
+            },
+            aspectRatio: 1
+          },
+          async (decodedText) => {
+
+            const machine = machines.find(
+              (m) =>
+                m.barcode?.toLowerCase() === decodedText.toLowerCase()
+            )
+
+            if (machine) {
+
+              setSelectedMachine(machine.id)
+
+              setMachineSearch(machine.name)
+
+              showStatus(
+                'success',
+                `Načten stroj: ${machine.name}`
+              )
+
+              await stopScanner()
+
+              setScannerOpen(false)
+
+              setScannerStarting(false)
+
+              setTimeout(() => {
+
+                phoneInputRef.current?.focus()
+
+              }, 300)
+
+            } else {
+
+              showStatus(
+                'error',
+                'Stroj nenalezen'
+              )
+            }
+          },
+          () => {}
+        )
+
+        setScannerStarting(false)
+
+      } catch (error) {
+
+        console.log(error)
+
+        await stopScanner()
+
+        setScannerOpen(false)
+
+        setScannerStarting(false)
+
+        showStatus(
+          'error',
+          'Kameru se nepodařilo spustit. Zkontrolujte povolení kamery pro tuto aplikaci.'
+        )
+      }
+    }, 150)
+  }
 
   async function loadMachines() {
 
@@ -1028,9 +1102,7 @@ export default function NewRentalPage() {
           </div>
 
           <button
-            onClick={() =>
-              setScannerOpen(!scannerOpen)
-            }
+            onClick={openScanner}
             className="bg-black hover:bg-gray-800 transition text-white px-5 py-4 rounded-2xl flex items-center justify-center gap-3"
           >
 
@@ -1048,9 +1120,15 @@ export default function NewRentalPage() {
 
           <div className="bg-white rounded-3xl shadow-lg p-5 mb-6">
 
+            <div className="mb-3 text-sm text-gray-500">
+              {scannerStarting
+                ? 'Spouštím kameru...'
+                : 'Namiřte kameru na QR kód stroje'}
+            </div>
+
             <div
               id="reader"
-              className="overflow-hidden rounded-2xl"
+              className="overflow-hidden rounded-2xl bg-black min-h-[280px]"
             />
 
           </div>
