@@ -1059,15 +1059,12 @@ export default function NewRentalPage() {
         'Půjčka vytvořena. PDF se na tomto zařízení nepodařilo stáhnout.'
       )
 
-      if (reservationId) {
+      setTimeout(() => {
 
         window.location.href =
-          '/reservations'
+          '/dashboard'
 
-        return
-      }
-
-      setLoading(false)
+      }, 1000)
 
       return
     }
@@ -1077,39 +1074,12 @@ export default function NewRentalPage() {
       'Půjčka vytvořena'
     )
 
-    if (reservationId) {
-
-      window.location.href =
-        '/reservations'
-
-      return
-    }
-
-    const newDates =
-      createDefaultDates()
-
-    setCustomerName('')
-    setCustomerLastName('')
-    setPhone('')
-    setIdCard('')
-    setStreet('')
-    setHouseNumber('')
-    setZip('')
-    setCity('')
-    setSelectedMachine('')
-    setMachineSearch('')
-    setStartDate(newDates.start)
-    setEndDate(newDates.end)
-    setSignature('')
-    setScannerOpen(false)
-
-    setLoading(false)
-
     setTimeout(() => {
 
-      phoneInputRef.current?.focus()
+      window.location.href =
+        '/dashboard'
 
-    }, 200)
+    }, 1000)
   }
 
   return (

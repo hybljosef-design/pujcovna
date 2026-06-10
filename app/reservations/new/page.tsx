@@ -643,10 +643,10 @@ export default function NewReservationPage() {
       setTimeout(() => {
 
         router.push(
-          '/reservations'
+          '/dashboard'
         )
 
-      }, 500)
+      }, 1000)
 
     } catch (error: any) {
 
