@@ -142,6 +142,9 @@ export default function NewRentalPage() {
   const [scannerStarting, setScannerStarting] =
     useState(false)
 
+  const [scannerError, setScannerError] =
+    useState('')
+
   const [signature, setSignature] =
     useState('')
 
@@ -230,6 +233,56 @@ export default function NewRentalPage() {
     scannerRef.current = null
   }
 
+  function getScannerErrorMessage(error: unknown) {
+
+    const errorText =
+      error instanceof Error
+        ? error.name + ': ' + error.message
+        : String(error)
+
+    if (
+      errorText.includes('NotAllowedError') ||
+      errorText.includes('Permission')
+    ) {
+
+      return 'Kamera je zablokovaná. V iPhonu povolte kameru pro tento web nebo aplikaci.'
+    }
+
+    if (
+      errorText.includes('NotFoundError') ||
+      errorText.includes('DevicesNotFound')
+    ) {
+
+      return 'Zařízení nenašlo kameru.'
+    }
+
+    if (
+      errorText.includes('NotReadableError') ||
+      errorText.includes('TrackStartError')
+    ) {
+
+      return 'Kamera je používána jinou aplikací. Zavřete fotoaparát nebo jinou aplikaci s kamerou a zkuste to znovu.'
+    }
+
+    if (
+      errorText.includes('OverconstrainedError') ||
+      errorText.includes('Constraint')
+    ) {
+
+      return 'Zadní kamera se nepodařila vybrat. Zkuste znovu nebo použijte Safari místo ikony na ploše.'
+    }
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      return 'Tento prohlížeč nepovoluje kameru pro webovou aplikaci.'
+    }
+
+    return `Kameru se nepodařilo spustit: ${errorText}`
+  }
+
   async function openScanner() {
 
     if (scannerOpen) {
@@ -238,6 +291,10 @@ export default function NewRentalPage() {
 
       setScannerOpen(false)
 
+      setScannerStarting(false)
+
+      setScannerError('')
+
       return
     }
 
@@ -245,9 +302,21 @@ export default function NewRentalPage() {
 
     setScannerStarting(true)
 
+    setScannerError('')
+
     setTimeout(async () => {
 
       try {
+
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
+
+          throw new Error(
+            'getUserMedia není dostupné'
+          )
+        }
 
         const scanner =
           new Html5Qrcode('reader')
@@ -257,23 +326,21 @@ export default function NewRentalPage() {
 
         await scanner.start(
           {
-            facingMode: {
-              ideal: 'environment'
-            }
+            facingMode: 'environment'
           },
           {
             fps: 10,
             qrbox: {
               width: 250,
               height: 250
-            },
-            aspectRatio: 1
+            }
           },
           async (decodedText) => {
 
             const machine = machines.find(
               (m) =>
-                m.barcode?.toLowerCase() === decodedText.toLowerCase()
+                m.barcode?.toLowerCase() ===
+                decodedText.toLowerCase()
             )
 
             if (machine) {
@@ -292,6 +359,8 @@ export default function NewRentalPage() {
               setScannerOpen(false)
 
               setScannerStarting(false)
+
+              setScannerError('')
 
               setTimeout(() => {
 
@@ -318,16 +387,20 @@ export default function NewRentalPage() {
 
         await stopScanner()
 
-        setScannerOpen(false)
-
         setScannerStarting(false)
+
+        const message =
+          getScannerErrorMessage(error)
+
+        setScannerError(message)
 
         showStatus(
           'error',
-          'Kameru se nepodařilo spustit. Zkontrolujte povolení kamery pro tuto aplikaci.'
+          message
         )
       }
-    }, 150)
+
+    }, 300)
   }
 
   async function loadMachines() {
@@ -1121,9 +1194,13 @@ export default function NewRentalPage() {
           <div className="bg-white rounded-3xl shadow-lg p-5 mb-6">
 
             <div className="mb-3 text-sm text-gray-500">
+
               {scannerStarting
                 ? 'Spouštím kameru...'
-                : 'Namiřte kameru na QR kód stroje'}
+                : scannerError
+                  ? scannerError
+                  : 'Namiřte kameru na QR kód stroje'}
+
             </div>
 
             <div
