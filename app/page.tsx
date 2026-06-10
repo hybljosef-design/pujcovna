@@ -17,7 +17,6 @@ import { supabase } from '../lib/supabase'
 
 import AuthGuard from '../components/AuthGuard'
 import Sidebar from '../components/Sidebar'
-import UserMenu from '../components/UserMenu'
 
 export default function DashboardPage() {
   const [reservationsCount, setReservationsCount] =
@@ -56,7 +55,6 @@ export default function DashboardPage() {
     const overdue =
       (activeRentalsData || []).filter(
         rental => {
-
           const end =
             new Date(
               rental.end_date
@@ -88,26 +86,6 @@ export default function DashboardPage() {
         <Sidebar />
 
         <div className="flex-1 min-w-0 w-full p-4 lg:p-10">
-
-          <div className="mb-6">
-            <UserMenu />
-          </div>
-
-          <div className="mb-8">
-
-            <h1 className="text-3xl lg:text-4xl font-bold mb-2">
-
-              Obsluha půjčovny
-
-            </h1>
-
-            <p className="text-gray-500 text-base lg:text-lg">
-
-              Vyber akci podle zákazníka
-
-            </p>
-
-          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
 
