@@ -12,7 +12,8 @@ import {
   CalendarDays,
   Phone,
   User,
-  Clock3
+  Clock3,
+  Users
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
@@ -59,33 +60,16 @@ function isOverdue(value: string) {
   return end < today
 }
 
-
-function getCustomer(
-  rental: ActiveRental
-) {
-
-  if (
-    Array.isArray(
-      rental.customers
-    )
-  ) {
-
+function getCustomer(rental: ActiveRental) {
+  if (Array.isArray(rental.customers)) {
     return rental.customers[0] || null
   }
 
   return rental.customers
 }
 
-function getMachine(
-  rental: ActiveRental
-) {
-
-  if (
-    Array.isArray(
-      rental.machines
-    )
-  ) {
-
+function getMachine(rental: ActiveRental) {
+  if (Array.isArray(rental.machines)) {
     return rental.machines[0] || null
   }
 
@@ -230,83 +214,19 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto">
 
-        <div className="mb-10">
+        <div className="mb-8">
 
           <h1 className="text-5xl font-bold mb-2">
             Dashboard
           </h1>
 
           <p className="text-gray-500 text-lg">
-            Provozní přehled půjčovny strojů
+            Rychlá obsluha půjčovny strojů
           </p>
 
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-
-            <div className="text-gray-500 mb-2">
-              Aktivní půjčky
-            </div>
-
-            <div className="text-4xl font-bold">
-              {activeRentals}
-            </div>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-
-            <div className="text-gray-500 mb-2">
-              Stroje
-            </div>
-
-            <div className="text-4xl font-bold">
-              {machines}
-            </div>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-
-            <div className="text-gray-500 mb-2">
-              Zákazníci
-            </div>
-
-            <div className="text-4xl font-bold">
-              {customers}
-            </div>
-
-          </div>
-
-          <div className="bg-white rounded-3xl p-6 shadow-lg">
-
-            <div className="text-gray-500 mb-2">
-              Rezervace
-            </div>
-
-            <div className="text-4xl font-bold">
-              {reservations}
-            </div>
-
-          </div>
-
-          <div className="bg-red-50 rounded-3xl p-6 shadow-lg">
-
-            <div className="text-red-600 mb-2">
-              Po termínu
-            </div>
-
-            <div className="text-4xl font-bold text-red-600">
-              {overdue}
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
           <Link
             href="/rentals/new"
@@ -314,7 +234,7 @@ export default function DashboardPage() {
               bg-black
               text-white
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
               hover:scale-[1.02]
               transition
@@ -322,11 +242,11 @@ export default function DashboardPage() {
           >
 
             <PlusCircle
-              size={40}
+              size={38}
               className="mb-4"
             />
 
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Nová půjčka
             </h2>
 
@@ -337,21 +257,51 @@ export default function DashboardPage() {
           </Link>
 
           <Link
+            href="/reservations/new"
+            className="
+              bg-black
+              text-white
+              rounded-3xl
+              p-7
+              shadow-lg
+              hover:scale-[1.02]
+              transition
+            "
+          >
+
+            <PlusCircle
+              size={38}
+              className="mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2">
+              Nová rezervace
+            </h2>
+
+            <p className="text-gray-300">
+              Vytvořit novou rezervaci
+            </p>
+
+          </Link>
+
+          <Link
             href="/returns"
             className="
               bg-white
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
+              hover:scale-[1.02]
+              transition
             "
           >
 
             <Undo2
-              size={40}
+              size={38}
               className="mb-4"
             />
 
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Vrácení
             </h2>
 
@@ -366,17 +316,19 @@ export default function DashboardPage() {
             className="
               bg-white
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
+              hover:scale-[1.02]
+              transition
             "
           >
 
             <ClipboardList
-              size={40}
+              size={38}
               className="mb-4"
             />
 
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Rezervace
             </h2>
 
@@ -387,21 +339,50 @@ export default function DashboardPage() {
           </Link>
 
           <Link
+            href="/customers"
+            className="
+              bg-white
+              rounded-3xl
+              p-7
+              shadow-lg
+              hover:scale-[1.02]
+              transition
+            "
+          >
+
+            <Users
+              size={38}
+              className="mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2">
+              Zákazníci
+            </h2>
+
+            <p className="text-gray-500">
+              Evidence zákazníků
+            </p>
+
+          </Link>
+
+          <Link
             href="/machines"
             className="
               bg-white
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
+              hover:scale-[1.02]
+              transition
             "
           >
 
             <Wrench
-              size={40}
+              size={38}
               className="mb-4"
             />
 
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Stroje
             </h2>
 
@@ -416,17 +397,19 @@ export default function DashboardPage() {
             className="
               bg-white
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
+              hover:scale-[1.02]
+              transition
             "
           >
 
             <CalendarDays
-              size={40}
+              size={38}
               className="mb-4"
             />
 
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Kalendář
             </h2>
 
@@ -441,17 +424,19 @@ export default function DashboardPage() {
             className="
               bg-red-50
               rounded-3xl
-              p-8
+              p-7
               shadow-lg
+              hover:scale-[1.02]
+              transition
             "
           >
 
             <AlertTriangle
-              size={40}
+              size={38}
               className="mb-4 text-red-600"
             />
 
-            <h2 className="text-3xl font-bold mb-2 text-red-600">
+            <h2 className="text-2xl font-bold mb-2 text-red-600">
               Po termínu
             </h2>
 
@@ -463,7 +448,7 @@ export default function DashboardPage() {
 
         </div>
 
-        <section className="bg-white rounded-3xl shadow-lg overflow-hidden">
+        <section className="bg-white rounded-3xl shadow-lg overflow-hidden mb-8">
 
           <div className="p-6 lg:p-8 border-b">
 
@@ -694,6 +679,70 @@ export default function DashboardPage() {
           )}
 
         </section>
+
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+
+          <div className="bg-white rounded-3xl p-5 shadow-lg">
+
+            <div className="text-gray-500 mb-2">
+              Aktivní půjčky
+            </div>
+
+            <div className="text-3xl font-bold">
+              {activeRentals}
+            </div>
+
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 shadow-lg">
+
+            <div className="text-gray-500 mb-2">
+              Stroje
+            </div>
+
+            <div className="text-3xl font-bold">
+              {machines}
+            </div>
+
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 shadow-lg">
+
+            <div className="text-gray-500 mb-2">
+              Zákazníci
+            </div>
+
+            <div className="text-3xl font-bold">
+              {customers}
+            </div>
+
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 shadow-lg">
+
+            <div className="text-gray-500 mb-2">
+              Rezervace
+            </div>
+
+            <div className="text-3xl font-bold">
+              {reservations}
+            </div>
+
+          </div>
+
+          <div className="bg-red-50 rounded-3xl p-5 shadow-lg">
+
+            <div className="text-red-600 mb-2">
+              Po termínu
+            </div>
+
+            <div className="text-3xl font-bold text-red-600">
+              {overdue}
+            </div>
+
+          </div>
+
+        </div>
 
       </div>
 
