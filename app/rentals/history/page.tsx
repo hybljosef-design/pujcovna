@@ -10,6 +10,11 @@ type Rental = {
   start_date: string
   end_date: string
   returned: boolean
+  returned_deposit?: number | null
+  return_note?: string | null
+  returned_at?: string | null
+  contract_number?: string | null
+  note?: string | null
 
   customers: {
     first_name: string
@@ -37,6 +42,18 @@ export default function RentalHistoryPage() {
     'returned' |
     'overdue'
   >('all')
+
+  const [returnRental, setReturnRental] =
+    useState<Rental | null>(null)
+
+  const [returnedDeposit, setReturnedDeposit] =
+    useState('')
+
+  const [returnNote, setReturnNote] =
+    useState('')
+
+  const [returnLoading, setReturnLoading] =
+    useState(false)
 
   useEffect(() => {
 
@@ -97,21 +114,56 @@ export default function RentalHistoryPage() {
     return 'active'
   }
 
-  async function markReturned(rental: Rental) {
+  function openReturnModal(rental: Rental) {
 
-    const confirmReturn = confirm(
-      `Opravdu vrátit stroj "${rental.machines.name}"?`
+    setReturnRental(rental)
+
+    setReturnedDeposit(
+      String(rental.deposit || 0)
     )
 
-    if (!confirmReturn) return
+    setReturnNote('')
+  }
+
+  function closeReturnModal() {
+
+    setReturnRental(null)
+
+    setReturnedDeposit('')
+
+    setReturnNote('')
+  }
+
+  async function markReturned() {
+
+    if (!returnRental) return
+
+    const depositValue =
+      Number(returnedDeposit || 0)
+
+    if (
+      Number.isNaN(depositValue) ||
+      depositValue < 0
+    ) {
+
+      alert(
+        'Vrácená kauce musí být platné číslo'
+      )
+
+      return
+    }
+
+    setReturnLoading(true)
 
     const { error } = await supabase
       .from('rentals')
       .update({
         returned: true,
-        returned_at: new Date().toISOString()
+        returned_at: new Date().toISOString(),
+        returned_deposit: depositValue,
+        return_note: returnNote.trim()
       })
-      .eq('id', rental.id)
+      .eq('id', returnRental.id)
 
     if (error) {
 
@@ -119,22 +171,28 @@ export default function RentalHistoryPage() {
 
       alert('Chyba při vrácení')
 
+      setReturnLoading(false)
+
       return
     }
 
-    if (rental.machines.id) {
+    if (returnRental.machines.id) {
 
       await supabase
         .from('machines')
         .update({
           status: 'available'
         })
-        .eq('id', rental.machines.id)
+        .eq('id', returnRental.machines.id)
     }
+
+    closeReturnModal()
 
     await loadRentals()
 
     alert('Půjčka uzavřena')
+
+    setReturnLoading(false)
   }
 
   const filteredRentals = useMemo(() => {
@@ -437,6 +495,18 @@ export default function RentalHistoryPage() {
               <div>
 
                 <p className="text-gray-500 mb-1">
+                  Kauce
+                </p>
+
+                <p className="font-semibold">
+                  {rental.deposit} Kč
+                </p>
+
+              </div>
+
+              <div>
+
+                <p className="text-gray-500 mb-1">
                   Od
                 </p>
 
@@ -464,6 +534,63 @@ export default function RentalHistoryPage() {
 
             </div>
 
+            {(rental.note || rental.return_note || rental.returned_deposit !== null && rental.returned_deposit !== undefined) && (
+
+              <div className="mt-5 grid md:grid-cols-2 gap-4">
+
+                {rental.returned_deposit !== null &&
+                  rental.returned_deposit !== undefined && (
+
+                  <div className="bg-gray-50 rounded-2xl p-4">
+
+                    <p className="text-gray-500 mb-1">
+                      Vrácená kauce
+                    </p>
+
+                    <p className="font-semibold">
+                      {rental.returned_deposit} Kč
+                    </p>
+
+                  </div>
+
+                )}
+
+                {rental.note && (
+
+                  <div className="bg-blue-50 rounded-2xl p-4">
+
+                    <p className="text-blue-700 font-semibold mb-1">
+                      Poznámka k půjčce
+                    </p>
+
+                    <p className="text-blue-800">
+                      {rental.note}
+                    </p>
+
+                  </div>
+
+                )}
+
+                {rental.return_note && (
+
+                  <div className="bg-orange-50 rounded-2xl p-4">
+
+                    <p className="text-orange-700 font-semibold mb-1">
+                      Poznámka k vrácení
+                    </p>
+
+                    <p className="text-orange-800">
+                      {rental.return_note}
+                    </p>
+
+                  </div>
+
+                )}
+
+              </div>
+
+            )}
+
             {getRentalStatus(rental) === 'overdue' && (
 
               <div className="mt-6 bg-red-100 border border-red-300 rounded-2xl p-4">
@@ -479,7 +606,7 @@ export default function RentalHistoryPage() {
             {!rental.returned && (
 
               <button
-                onClick={() => markReturned(rental)}
+                onClick={() => openReturnModal(rental)}
                 className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white rounded-2xl p-4 font-semibold transition"
               >
                 Označit jako vrácené
@@ -492,6 +619,157 @@ export default function RentalHistoryPage() {
         ))}
 
       </div>
+
+      {returnRental && (
+
+        <div className="
+          fixed
+          inset-0
+          z-50
+          bg-black/50
+          flex
+          items-center
+          justify-center
+          p-4
+        ">
+
+          <div className="
+            bg-white
+            rounded-3xl
+            shadow-2xl
+            w-full
+            max-w-2xl
+            p-6
+            lg:p-8
+          ">
+
+            <div className="mb-6">
+
+              <h2 className="text-3xl font-bold mb-2">
+                Vrácení stroje
+              </h2>
+
+              <p className="text-gray-500">
+                {returnRental.machines.name}
+              </p>
+
+            </div>
+
+            <div className="grid gap-5">
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Vrácená kauce
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={returnedDeposit}
+                  onChange={(e) =>
+                    setReturnedDeposit(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+                <p className="text-sm text-gray-500 mt-2">
+                  Původní kauce: {returnRental.deposit} Kč
+                </p>
+
+              </div>
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Poznámka k vrácení
+                </label>
+
+                <textarea
+                  value={returnNote}
+                  onChange={(e) =>
+                    setReturnNote(
+                      e.target.value
+                    )
+                  }
+                  rows={4}
+                  placeholder="Např. vráceno v pořádku, poškozený kabel, zadržena část kauce..."
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                  "
+                />
+
+              </div>
+
+            </div>
+
+            <div className="
+              flex
+              flex-col
+              sm:flex-row
+              gap-3
+              mt-8
+            ">
+
+              <button
+                type="button"
+                onClick={markReturned}
+                disabled={returnLoading}
+                className="
+                  bg-green-600
+                  hover:bg-green-700
+                  disabled:bg-gray-400
+                  transition
+                  text-white
+                  rounded-2xl
+                  px-6
+                  py-4
+                  font-semibold
+                  text-lg
+                "
+              >
+
+                {returnLoading
+                  ? 'Ukládám vrácení...'
+                  : 'Uložit vrácení'}
+
+              </button>
+
+              <button
+                type="button"
+                onClick={closeReturnModal}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-6
+                  py-4
+                  font-semibold
+                  text-lg
+                "
+              >
+                Zrušit
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </main>
   )
