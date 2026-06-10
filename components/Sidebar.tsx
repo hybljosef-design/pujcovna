@@ -1,8 +1,6 @@
 'use client'
 
-import {
-  useState
-} from 'react'
+import { useState } from 'react'
 
 import Link from 'next/link'
 
@@ -21,73 +19,62 @@ import {
   X
 } from 'lucide-react'
 
-const links = [
+import UserMenu from './UserMenu'
 
+const links = [
   {
     href: '/dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard
   },
-
   {
     href: '/rentals/new',
     label: 'Nová půjčka',
     icon: PlusCircle
   },
-
   {
     href: '/returns',
     label: 'Vrácení strojů',
     icon: Undo2
   },
-
   {
     href: '/reservations',
     label: 'Rezervace',
     icon: ClipboardList
   },
-
   {
     href: '/machines',
     label: 'Stroje',
     icon: Wrench
   },
-
   {
     href: '/calendar',
     label: 'Kalendář',
     icon: CalendarDays
   },
-
   {
     href: '/history',
     label: 'Historie půjček',
     icon: History
   },
-
   {
     href: '/overdue',
     label: 'Po termínu',
     icon: AlertTriangle
   }
-
 ]
 
 export default function Sidebar() {
-
-  const pathname =
-    usePathname()
+  const pathname = usePathname()
 
   const [mobileOpen, setMobileOpen] =
     useState(false)
 
   function closeMobileMenu() {
-
     setMobileOpen(false)
   }
 
   return (
-
     <>
 
       <div className="
@@ -108,21 +95,11 @@ export default function Sidebar() {
         <div>
 
           <div className="
-            text-xl
-            font-bold
+            text-2xl
+            font-black
+            tracking-tight
           ">
-
             NAPP-MB
-
-          </div>
-
-          <div className="
-            text-xs
-            text-gray-500
-          ">
-
-            Půjčovna strojů
-
           </div>
 
         </div>
@@ -130,26 +107,24 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={() =>
-            setMobileOpen(
-              !mobileOpen
-            )
+            setMobileOpen(!mobileOpen)
           }
           className="
             bg-black
             text-white
             rounded-2xl
-            px-4
+            px-5
             py-3
             flex
             items-center
             gap-2
-            font-semibold
+            font-bold
           "
         >
 
           {mobileOpen
-            ? <X size={20} />
-            : <Menu size={20} />}
+            ? <X size={22} />
+            : <Menu size={22} />}
 
           {mobileOpen
             ? 'Zavřít'
@@ -171,36 +146,23 @@ export default function Sidebar() {
 
           <div className="
             bg-white
-            w-[84%]
-            max-w-[340px]
+            w-[86%]
+            max-w-[360px]
             min-h-screen
             p-5
             shadow-2xl
+            overflow-y-auto
           ">
 
-            <div className="
-              mb-8
-              pt-16
-            ">
+            <div className="mb-6 pt-16">
 
               <h1 className="
-                text-2xl
-                font-bold
+                text-3xl
+                font-black
+                tracking-tight
               ">
-
                 NAPP-MB
-
               </h1>
-
-              <p className="
-                text-sm
-                text-gray-500
-                mt-1
-              ">
-
-                Půjčovna strojů
-
-              </p>
 
             </div>
 
@@ -208,18 +170,14 @@ export default function Sidebar() {
               flex
               flex-col
               gap-2
+              mb-6
             ">
 
               {links.map((link) => {
-
-                const Icon =
-                  link.icon
-
-                const active =
-                  pathname === link.href
+                const Icon = link.icon
+                const active = pathname === link.href
 
                 return (
-
                   <Link
                     key={link.href}
                     href={link.href}
@@ -233,7 +191,7 @@ export default function Sidebar() {
                       rounded-2xl
                       transition
                       text-lg
-                      font-medium
+                      font-semibold
 
                       ${active
                         ? 'bg-black text-white'
@@ -246,11 +204,12 @@ export default function Sidebar() {
                     {link.label}
 
                   </Link>
-
                 )
               })}
 
             </nav>
+
+            <UserMenu />
 
           </div>
 
@@ -260,7 +219,8 @@ export default function Sidebar() {
 
       <aside className="
         hidden
-        lg:block
+        lg:flex
+        lg:flex-col
         lg:w-[280px]
         bg-white
         border-r
@@ -273,23 +233,12 @@ export default function Sidebar() {
         <div className="mb-8">
 
           <h1 className="
-            text-2xl
-            font-bold
+            text-3xl
+            font-black
+            tracking-tight
           ">
-
             NAPP-MB
-
           </h1>
-
-          <p className="
-            text-sm
-            text-gray-500
-            mt-1
-          ">
-
-            Půjčovna strojů
-
-          </p>
 
         </div>
 
@@ -297,18 +246,14 @@ export default function Sidebar() {
           flex
           flex-col
           gap-2
+          flex-1
         ">
 
           {links.map((link) => {
-
-            const Icon =
-              link.icon
-
-            const active =
-              pathname === link.href
+            const Icon = link.icon
+            const active = pathname === link.href
 
             return (
-
               <Link
                 key={link.href}
                 href={link.href}
@@ -321,7 +266,7 @@ export default function Sidebar() {
                   rounded-2xl
                   transition
                   text-lg
-                  font-medium
+                  font-semibold
 
                   ${active
                     ? 'bg-black text-white'
@@ -334,15 +279,17 @@ export default function Sidebar() {
                 {link.label}
 
               </Link>
-
             )
           })}
 
         </nav>
 
+        <div className="mt-6">
+          <UserMenu />
+        </div>
+
       </aside>
 
     </>
-
   )
 }
