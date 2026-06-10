@@ -16,7 +16,8 @@ import {
   Undo2,
   ClipboardList,
   Menu,
-  X
+  X,
+  BarChart3
 } from 'lucide-react'
 
 import UserMenu from './UserMenu'
@@ -51,6 +52,11 @@ const links = [
     href: '/calendar',
     label: 'Kalendář',
     icon: CalendarDays
+  },
+  {
+    href: '/statistics',
+    label: 'Statistiky',
+    icon: BarChart3
   },
   {
     href: '/history',
