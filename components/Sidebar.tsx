@@ -76,7 +76,6 @@ export default function Sidebar() {
 
   return (
     <>
-
       <div className="
         lg:hidden
         sticky
@@ -92,16 +91,12 @@ export default function Sidebar() {
         justify-between
       ">
 
-        <div>
-
-          <div className="
-            text-2xl
-            font-black
-            tracking-tight
-          ">
-            NAPP-MB
-          </div>
-
+        <div className="
+          text-2xl
+          font-black
+          tracking-tight
+        ">
+          NAPP-MB
         </div>
 
         <button
@@ -121,7 +116,6 @@ export default function Sidebar() {
             font-bold
           "
         >
-
           {mobileOpen
             ? <X size={22} />
             : <Menu size={22} />}
@@ -129,13 +123,11 @@ export default function Sidebar() {
           {mobileOpen
             ? 'Zavřít'
             : 'Menu'}
-
         </button>
 
       </div>
 
       {mobileOpen && (
-
         <div className="
           lg:hidden
           fixed
@@ -148,7 +140,7 @@ export default function Sidebar() {
             bg-white
             w-[86%]
             max-w-[360px]
-            min-h-screen
+            h-screen
             p-5
             shadow-2xl
             overflow-y-auto
@@ -198,23 +190,22 @@ export default function Sidebar() {
                         : 'text-gray-700 hover:bg-gray-100'}
                     `}
                   >
-
                     <Icon size={22} />
 
                     {link.label}
-
                   </Link>
                 )
               })}
 
             </nav>
 
-            <UserMenu />
+            <div className="pb-32">
+              <UserMenu />
+            </div>
 
           </div>
 
         </div>
-
       )}
 
       <aside className="
@@ -273,11 +264,9 @@ export default function Sidebar() {
                     : 'text-gray-700 hover:bg-gray-100'}
                 `}
               >
-
                 <Icon size={22} />
 
                 {link.label}
-
               </Link>
             )
           })}
@@ -289,7 +278,6 @@ export default function Sidebar() {
         </div>
 
       </aside>
-
     </>
   )
 }
