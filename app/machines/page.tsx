@@ -14,6 +14,7 @@ import { generateQrLabelPdf } from '../../lib/generateQrLabelPdf'
 
 import {
   Plus,
+  Pencil,
   Trash2,
   Wrench,
   CheckCircle,
@@ -57,6 +58,30 @@ export default function MachinesPage() {
 
   const [purchaseDate, setPurchaseDate] =
     useState('')
+
+  const [editingMachine, setEditingMachine] =
+    useState<Machine | null>(null)
+
+  const [editName, setEditName] =
+    useState('')
+
+  const [editDailyPrice, setEditDailyPrice] =
+    useState('')
+
+  const [editDeposit, setEditDeposit] =
+    useState('')
+
+  const [editBarcode, setEditBarcode] =
+    useState('')
+
+  const [editPurchasePrice, setEditPurchasePrice] =
+    useState('')
+
+  const [editPurchaseDate, setEditPurchaseDate] =
+    useState('')
+
+  const [editLoading, setEditLoading] =
+    useState(false)
 
   const [search, setSearch] =
     useState('')
@@ -312,6 +337,122 @@ export default function MachinesPage() {
     }
 
     await loadMachines()
+  }
+
+  function openEditMachine(
+    machine: Machine
+  ) {
+
+    if (role !== 'admin') {
+
+      alert(
+        'Úpravy může provádět pouze admin'
+      )
+
+      return
+    }
+
+    setEditingMachine(machine)
+
+    setEditName(
+      machine.name || ''
+    )
+
+    setEditDailyPrice(
+      String(machine.daily_price || '')
+    )
+
+    setEditDeposit(
+      String(machine.deposit || '')
+    )
+
+    setEditBarcode(
+      machine.barcode || ''
+    )
+
+    setEditPurchasePrice(
+      String(machine.purchase_price || '')
+    )
+
+    setEditPurchaseDate(
+      machine.purchase_date || ''
+    )
+  }
+
+  function closeEditMachine() {
+
+    setEditingMachine(null)
+
+    setEditName('')
+    setEditDailyPrice('')
+    setEditDeposit('')
+    setEditBarcode('')
+    setEditPurchasePrice('')
+    setEditPurchaseDate('')
+  }
+
+  async function updateMachine() {
+
+    if (!editingMachine) return
+
+    if (
+      !editName.trim() ||
+      !editDailyPrice ||
+      !editDeposit
+    ) {
+
+      alert(
+        'Vyplňte název, cenu za den a kauci'
+      )
+
+      return
+    }
+
+    setEditLoading(true)
+
+    const { error } = await supabase
+      .from('machines')
+      .update({
+        name:
+          editName.trim(),
+        daily_price:
+          Number(editDailyPrice),
+        deposit:
+          Number(editDeposit),
+        barcode:
+          editBarcode.trim() ||
+          editingMachine.barcode ||
+          editingMachine.id,
+        purchase_price:
+          Number(editPurchasePrice || 0),
+        purchase_date:
+          editPurchaseDate || null
+      })
+      .eq(
+        'id',
+        editingMachine.id
+      )
+
+    if (error) {
+
+      console.log(error)
+
+      alert(error.message)
+
+      setEditLoading(false)
+
+      return
+    }
+
+    closeEditMachine()
+
+    await loadMachines()
+
+    alert(
+      'Stroj upraven'
+    )
+
+    setEditLoading(false)
   }
 
   const filteredMachines =
@@ -983,24 +1124,52 @@ export default function MachinesPage() {
 
                       {role === 'admin' && (
 
-                        <button
-                          onClick={() =>
-                            deleteMachine(
-                              machine.id
-                            )
-                          }
-                          className="
-                            text-red-500
-                            hover:text-red-700
-                            shrink-0
-                          "
-                        >
+                        <div className="
+                          flex
+                          items-center
+                          gap-3
+                          shrink-0
+                        ">
 
-                          <Trash2
-                            size={22}
-                          />
+                          <button
+                            onClick={() =>
+                              openEditMachine(
+                                machine
+                              )
+                            }
+                            className="
+                              text-gray-500
+                              hover:text-black
+                            "
+                            title="Upravit stroj"
+                          >
 
-                        </button>
+                            <Pencil
+                              size={22}
+                            />
+
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              deleteMachine(
+                                machine.id
+                              )
+                            }
+                            className="
+                              text-red-500
+                              hover:text-red-700
+                            "
+                            title="Smazat stroj"
+                          >
+
+                            <Trash2
+                              size={22}
+                            />
+
+                          </button>
+
+                        </div>
 
                       )}
 
@@ -1298,6 +1467,334 @@ export default function MachinesPage() {
         </div>
 
       </div>
+
+      {editingMachine && (
+
+        <div className="
+          fixed
+          inset-0
+          z-50
+          bg-black/50
+          flex
+          items-center
+          justify-center
+          p-4
+        ">
+
+          <div className="
+            bg-white
+            rounded-3xl
+            shadow-2xl
+            w-full
+            max-w-3xl
+            max-h-[90vh]
+            overflow-y-auto
+            p-6
+            lg:p-8
+          ">
+
+            <div className="
+              flex
+              items-start
+              justify-between
+              gap-4
+              mb-6
+            ">
+
+              <div>
+
+                <h2 className="
+                  text-3xl
+                  font-bold
+                  mb-2
+                ">
+
+                  Upravit stroj
+
+                </h2>
+
+                <p className="
+                  text-gray-500
+                ">
+
+                  Změny se projeví v půjčkách, QR štítcích i statistikách.
+
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditMachine}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-4
+                  py-3
+                  font-semibold
+                "
+              >
+
+                Zavřít
+
+              </button>
+
+            </div>
+
+            <div className="
+              grid
+              md:grid-cols-2
+              gap-5
+            ">
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Název stroje
+
+                </label>
+
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) =>
+                    setEditName(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Barcode
+
+                </label>
+
+                <input
+                  type="text"
+                  value={editBarcode}
+                  onChange={(e) =>
+                    setEditBarcode(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Cena / den
+
+                </label>
+
+                <input
+                  type="number"
+                  value={editDailyPrice}
+                  onChange={(e) =>
+                    setEditDailyPrice(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Kauce
+
+                </label>
+
+                <input
+                  type="number"
+                  value={editDeposit}
+                  onChange={(e) =>
+                    setEditDeposit(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Pořizovací cena
+
+                </label>
+
+                <input
+                  type="number"
+                  value={editPurchasePrice}
+                  onChange={(e) =>
+                    setEditPurchasePrice(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Datum pořízení
+
+                </label>
+
+                <input
+                  type="date"
+                  value={editPurchaseDate}
+                  onChange={(e) =>
+                    setEditPurchaseDate(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+            </div>
+
+            <div className="
+              flex
+              flex-col
+              sm:flex-row
+              gap-3
+              mt-8
+            ">
+
+              <button
+                type="button"
+                onClick={updateMachine}
+                disabled={editLoading}
+                className="
+                  bg-black
+                  hover:bg-gray-800
+                  disabled:bg-gray-400
+                  transition
+                  text-white
+                  px-6
+                  py-4
+                  rounded-2xl
+                  font-semibold
+                  text-lg
+                "
+              >
+
+                {editLoading
+                  ? 'Ukládám...'
+                  : 'Uložit změny'}
+
+              </button>
+
+              <button
+                type="button"
+                onClick={closeEditMachine}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  px-6
+                  py-4
+                  rounded-2xl
+                  font-semibold
+                  text-lg
+                "
+              >
+
+                Zrušit
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </main>
 
