@@ -83,6 +83,9 @@ export default function MachinesPage() {
   const [editLoading, setEditLoading] =
     useState(false)
 
+  const [createOpen, setCreateOpen] =
+    useState(false)
+
   const [search, setSearch] =
     useState('')
 
@@ -170,6 +173,18 @@ export default function MachinesPage() {
     setMachines(preparedMachines)
   }
 
+  function closeCreateMachine() {
+
+    setCreateOpen(false)
+
+    setName('')
+    setDailyPrice('')
+    setDeposit('')
+    setBarcode('')
+    setPurchasePrice('')
+    setPurchaseDate('')
+  }
+
   async function createMachine() {
 
     if (
@@ -222,12 +237,7 @@ export default function MachinesPage() {
       return
     }
 
-    setName('')
-    setDailyPrice('')
-    setDeposit('')
-    setBarcode('')
-    setPurchasePrice('')
-    setPurchaseDate('')
+    closeCreateMachine()
 
     await loadMachines()
 
@@ -810,125 +820,44 @@ export default function MachinesPage() {
           bg-white
           rounded-3xl
           shadow-lg
-          p-8
+          p-5
           mb-8
+          flex
+          flex-col
+          sm:flex-row
+          sm:items-center
+          sm:justify-between
+          gap-4
         ">
 
-          <div className="
-            grid
-            md:grid-cols-2
-            xl:grid-cols-6
-            gap-4
-          ">
+          <div>
 
-            <input
-              type="text"
-              placeholder="Název stroje"
-              value={name}
-              onChange={(e) =>
-                setName(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+            <h2 className="
+              text-2xl
+              font-bold
+              mb-1
+            ">
 
-            <input
-              type="number"
-              placeholder="Cena / den"
-              value={dailyPrice}
-              onChange={(e) =>
-                setDailyPrice(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+              Stroje
 
-            <input
-              type="number"
-              placeholder="Kauce"
-              value={deposit}
-              onChange={(e) =>
-                setDeposit(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+            </h2>
 
-            <input
-              type="text"
-              placeholder="Barcode (volitelné)"
-              value={barcode}
-              onChange={(e) =>
-                setBarcode(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+            <p className="
+              text-gray-500
+            ">
 
-            <input
-              type="number"
-              placeholder="Pořizovací cena"
-              value={purchasePrice}
-              onChange={(e) =>
-                setPurchasePrice(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+              Přidání nového stroje otevře samostatný formulář.
 
-            <input
-              type="date"
-              value={purchaseDate}
-              onChange={(e) =>
-                setPurchaseDate(
-                  e.target.value
-                )
-              }
-              className="
-                border
-                rounded-2xl
-                p-4
-                text-lg
-              "
-            />
+            </p>
 
           </div>
 
           <button
-            onClick={createMachine}
-            disabled={loading}
+            type="button"
+            onClick={() =>
+              setCreateOpen(true)
+            }
             className="
-              mt-6
               bg-black
               hover:bg-gray-800
               transition
@@ -938,6 +867,7 @@ export default function MachinesPage() {
               rounded-2xl
               flex
               items-center
+              justify-center
               gap-3
               text-lg
               font-semibold
@@ -946,9 +876,7 @@ export default function MachinesPage() {
 
             <Plus size={22} />
 
-            {loading
-              ? 'Vytvářím...'
-              : 'Přidat stroj'}
+            Přidat stroj
 
           </button>
 
@@ -1467,6 +1395,344 @@ export default function MachinesPage() {
         </div>
 
       </div>
+
+      {createOpen && (
+
+        <div className="
+          fixed
+          inset-0
+          z-50
+          bg-black/50
+          flex
+          items-center
+          justify-center
+          p-4
+        ">
+
+          <div className="
+            bg-white
+            rounded-3xl
+            shadow-2xl
+            w-full
+            max-w-3xl
+            max-h-[90vh]
+            overflow-y-auto
+            p-6
+            lg:p-8
+          ">
+
+            <div className="
+              flex
+              items-start
+              justify-between
+              gap-4
+              mb-6
+            ">
+
+              <div>
+
+                <h2 className="
+                  text-3xl
+                  font-bold
+                  mb-2
+                ">
+
+                  Přidat nový stroj
+
+                </h2>
+
+                <p className="
+                  text-gray-500
+                ">
+
+                  Vyplň základní údaje stroje. Barcode můžeš zadat ručně, nebo se vygeneruje automaticky.
+
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={closeCreateMachine}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-4
+                  py-3
+                  font-semibold
+                "
+              >
+
+                Zavřít
+
+              </button>
+
+            </div>
+
+            <div className="
+              grid
+              md:grid-cols-2
+              gap-5
+            ">
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Název stroje
+
+                </label>
+
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) =>
+                    setName(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Např. Vibrační pěch Ammann"
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Barcode
+
+                </label>
+
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) =>
+                    setBarcode(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Volitelné"
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Cena / den
+
+                </label>
+
+                <input
+                  type="number"
+                  value={dailyPrice}
+                  onChange={(e) =>
+                    setDailyPrice(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Kauce
+
+                </label>
+
+                <input
+                  type="number"
+                  value={deposit}
+                  onChange={(e) =>
+                    setDeposit(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Pořizovací cena
+
+                </label>
+
+                <input
+                  type="number"
+                  value={purchasePrice}
+                  onChange={(e) =>
+                    setPurchasePrice(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Volitelné"
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="
+                  block
+                  mb-2
+                  font-semibold
+                ">
+
+                  Datum pořízení
+
+                </label>
+
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(e) =>
+                    setPurchaseDate(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+            </div>
+
+            <div className="
+              flex
+              flex-col
+              sm:flex-row
+              gap-3
+              mt-8
+            ">
+
+              <button
+                type="button"
+                onClick={createMachine}
+                disabled={loading}
+                className="
+                  bg-black
+                  hover:bg-gray-800
+                  disabled:bg-gray-400
+                  transition
+                  text-white
+                  px-6
+                  py-4
+                  rounded-2xl
+                  font-semibold
+                  text-lg
+                  flex
+                  items-center
+                  justify-center
+                  gap-3
+                "
+              >
+
+                <Plus size={22} />
+
+                {loading
+                  ? 'Vytvářím...'
+                  : 'Uložit stroj'}
+
+              </button>
+
+              <button
+                type="button"
+                onClick={closeCreateMachine}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  px-6
+                  py-4
+                  rounded-2xl
+                  font-semibold
+                  text-lg
+                "
+              >
+
+                Zrušit
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
 
       {editingMachine && (
 
