@@ -39,10 +39,14 @@ type Rental = {
     | {
         id: string
         name: string
+        purchase_price?: number | null
+        purchase_date?: string | null
       }
     | {
         id: string
         name: string
+        purchase_price?: number | null
+        purchase_date?: string | null
       }[]
     | null
 }
@@ -55,6 +59,9 @@ type MachineStats = {
   totalRevenue: number
   totalDeposit: number
   averageRevenue: number
+  purchasePrice: number
+  purchaseDate: string
+  returnPercent: number
   lastRentalDate: string
 }
 
@@ -105,6 +112,18 @@ function getRentalDays(
       )
     )
   )
+}
+
+function getReturnColor(percent: number) {
+  if (percent >= 100) {
+    return 'bg-green-100 text-green-700'
+  }
+
+  if (percent >= 50) {
+    return 'bg-yellow-100 text-yellow-700'
+  }
+
+  return 'bg-red-100 text-red-700'
 }
 
 function getPeriodStart(period: Period) {
@@ -179,7 +198,9 @@ export default function StatisticsPage() {
           returned,
           machines (
             id,
-            name
+            name,
+            purchase_price,
+            purchase_date
           )
         `)
         .order(
@@ -248,6 +269,14 @@ export default function StatisticsPage() {
             machine?.name ||
             'Neznámý stroj'
 
+          const purchasePrice =
+            Number(
+              machine?.purchase_price || 0
+            )
+
+          const purchaseDate =
+            machine?.purchase_date || ''
+
           const days =
             getRentalDays(
               rental.start_date,
@@ -278,6 +307,12 @@ export default function StatisticsPage() {
                 totalRevenue: rentalPrice,
                 totalDeposit: deposit,
                 averageRevenue: rentalPrice,
+                purchasePrice,
+                purchaseDate,
+                returnPercent:
+                  purchasePrice > 0
+                    ? rentalPrice / purchasePrice * 100
+                    : 0,
                 lastRentalDate: rental.start_date
               }
             )
@@ -291,6 +326,22 @@ export default function StatisticsPage() {
           existing.totalDeposit += deposit
 
           if (
+            purchasePrice > 0 &&
+            existing.purchasePrice === 0
+          ) {
+            existing.purchasePrice =
+              purchasePrice
+          }
+
+          if (
+            purchaseDate &&
+            !existing.purchaseDate
+          ) {
+            existing.purchaseDate =
+              purchaseDate
+          }
+
+          if (
             new Date(rental.start_date) >
             new Date(existing.lastRentalDate)
           ) {
@@ -301,6 +352,13 @@ export default function StatisticsPage() {
           existing.averageRevenue =
             existing.totalRevenue /
             existing.rentalCount
+
+          existing.returnPercent =
+            existing.purchasePrice > 0
+              ? existing.totalRevenue /
+                existing.purchasePrice *
+                100
+              : 0
         }
       )
 
@@ -348,12 +406,31 @@ export default function StatisticsPage() {
         a.rentalCount
     )[0] || null
 
-  const leastRentedMachine =
-    [...machineStats].sort(
-      (a, b) =>
-        a.rentalCount -
-        b.rentalCount
-    )[0] || null
+  const bestReturnMachine =
+    [...machineStats]
+      .filter(
+        item =>
+          item.purchasePrice > 0
+      )
+      .sort(
+        (a, b) =>
+          b.returnPercent -
+          a.returnPercent
+      )[0] || null
+
+  const totalPurchasePrice =
+    machineStats.reduce(
+      (sum, item) =>
+        sum + item.purchasePrice,
+      0
+    )
+
+  const totalReturnPercent =
+    totalPurchasePrice > 0
+      ? totalRevenue /
+        totalPurchasePrice *
+        100
+      : 0
 
   const periodButtons: {
     value: Period
@@ -415,7 +492,7 @@ export default function StatisticsPage() {
               </h1>
 
               <p className="text-gray-500 text-lg">
-                Interní přehled vytížení a výdělků strojů
+                Interní přehled vytížení, výdělků a návratnosti strojů
               </p>
 
             </div>
@@ -507,7 +584,7 @@ export default function StatisticsPage() {
                   <div className="flex items-center justify-between mb-4">
 
                     <div className="text-gray-500">
-                      Kauce
+                      Pořizovací ceny
                     </div>
 
                     <TrendingUp size={22} />
@@ -515,7 +592,7 @@ export default function StatisticsPage() {
                   </div>
 
                   <div className="text-3xl font-black">
-                    {formatMoney(totalDeposit)}
+                    {formatMoney(totalPurchasePrice)}
                   </div>
 
                 </div>
@@ -543,7 +620,7 @@ export default function StatisticsPage() {
                   <div className="flex items-center justify-between mb-4">
 
                     <div className="text-gray-500">
-                      Strojů v přehledu
+                      Návratnost celkem
                     </div>
 
                     <Wrench size={22} />
@@ -551,7 +628,7 @@ export default function StatisticsPage() {
                   </div>
 
                   <div className="text-4xl font-black">
-                    {machineStats.length}
+                    {Math.round(totalReturnPercent)} %
                   </div>
 
                 </div>
@@ -615,18 +692,18 @@ export default function StatisticsPage() {
                     <CalendarDays size={24} />
 
                     <h2 className="text-xl font-bold">
-                      Nejméně využívaný
+                      Nejlepší návratnost
                     </h2>
 
                   </div>
 
                   <div className="text-2xl font-black mb-2">
-                    {leastRentedMachine?.machineName || '-'}
+                    {bestReturnMachine?.machineName || '-'}
                   </div>
 
                   <div className="text-gray-500">
-                    {leastRentedMachine
-                      ? `${leastRentedMachine.rentalCount}× půjčeno`
+                    {bestReturnMachine
+                      ? `${Math.round(bestReturnMachine.returnPercent)} %`
                       : 'Bez dat'}
                   </div>
 
@@ -674,11 +751,23 @@ export default function StatisticsPage() {
                           </th>
 
                           <th className="p-4 font-semibold text-right">
-                            Půjčovné
+                            Pořizovací cena
+                          </th>
+
+                          <th className="p-4 font-semibold text-right">
+                            Vydělal
+                          </th>
+
+                          <th className="p-4 font-semibold text-right">
+                            Návratnost
                           </th>
 
                           <th className="p-4 font-semibold text-right">
                             Průměr
+                          </th>
+
+                          <th className="p-4 font-semibold text-right">
+                            Pořízeno
                           </th>
 
                           <th className="p-4 font-semibold text-right">
@@ -710,12 +799,43 @@ export default function StatisticsPage() {
                                 {item.totalDays}
                               </td>
 
+                              <td className="p-4 text-right">
+                                {item.purchasePrice > 0
+                                  ? formatMoney(item.purchasePrice)
+                                  : '-'}
+                              </td>
+
                               <td className="p-4 text-right font-black">
                                 {formatMoney(item.totalRevenue)}
                               </td>
 
                               <td className="p-4 text-right">
+                                {item.purchasePrice > 0 ? (
+                                  <span className={`
+                                    inline-flex
+                                    px-3
+                                    py-1
+                                    rounded-xl
+                                    font-bold
+                                    ${getReturnColor(item.returnPercent)}
+                                  `}>
+                                    {Math.round(item.returnPercent)} %
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-4 text-right">
                                 {formatMoney(item.averageRevenue)}
+                              </td>
+
+                              <td className="p-4 text-right whitespace-nowrap text-gray-500">
+                                {item.purchaseDate
+                                  ? formatDate(item.purchaseDate)
+                                  : '-'}
                               </td>
 
                               <td className="p-4 text-right whitespace-nowrap text-gray-500">

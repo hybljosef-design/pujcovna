@@ -30,6 +30,8 @@ type Machine = {
   barcode?: string
   active?: boolean
   status?: string
+  purchase_price?: number
+  purchase_date?: string
   qr?: string
 }
 
@@ -48,6 +50,12 @@ export default function MachinesPage() {
     useState('')
 
   const [barcode, setBarcode] =
+    useState('')
+
+  const [purchasePrice, setPurchasePrice] =
+    useState('')
+
+  const [purchaseDate, setPurchaseDate] =
     useState('')
 
   const [search, setSearch] =
@@ -169,6 +177,10 @@ export default function MachinesPage() {
             Number(deposit),
           barcode:
             machineBarcode,
+          purchase_price:
+            Number(purchasePrice || 0),
+          purchase_date:
+            purchaseDate || null,
           active: true,
           status: 'available'
         }
@@ -189,6 +201,8 @@ export default function MachinesPage() {
     setDailyPrice('')
     setDeposit('')
     setBarcode('')
+    setPurchasePrice('')
+    setPurchaseDate('')
 
     await loadMachines()
 
@@ -662,7 +676,7 @@ export default function MachinesPage() {
           <div className="
             grid
             md:grid-cols-2
-            xl:grid-cols-4
+            xl:grid-cols-6
             gap-4
           ">
 
@@ -723,6 +737,39 @@ export default function MachinesPage() {
               value={barcode}
               onChange={(e) =>
                 setBarcode(
+                  e.target.value
+                )
+              }
+              className="
+                border
+                rounded-2xl
+                p-4
+                text-lg
+              "
+            />
+
+            <input
+              type="number"
+              placeholder="Pořizovací cena"
+              value={purchasePrice}
+              onChange={(e) =>
+                setPurchasePrice(
+                  e.target.value
+                )
+              }
+              className="
+                border
+                rounded-2xl
+                p-4
+                text-lg
+              "
+            />
+
+            <input
+              type="date"
+              value={purchaseDate}
+              onChange={(e) =>
+                setPurchaseDate(
                   e.target.value
                 )
               }
@@ -1009,6 +1056,58 @@ export default function MachinesPage() {
                         ">
 
                           {machine.deposit} Kč
+
+                        </span>
+
+                      </div>
+
+                      <div className="
+                        flex
+                        items-center
+                        justify-between
+                      ">
+
+                        <span className="
+                          text-gray-500
+                        ">
+
+                          Pořizovací cena
+
+                        </span>
+
+                        <span className="
+                          font-bold
+                          text-lg
+                        ">
+
+                          {machine.purchase_price || 0} Kč
+
+                        </span>
+
+                      </div>
+
+                      <div className="
+                        flex
+                        items-center
+                        justify-between
+                      ">
+
+                        <span className="
+                          text-gray-500
+                        ">
+
+                          Datum pořízení
+
+                        </span>
+
+                        <span className="
+                          font-bold
+                          text-lg
+                        ">
+
+                          {machine.purchase_date
+                            ? new Date(machine.purchase_date).toLocaleDateString('cs-CZ')
+                            : '-'}
 
                         </span>
 
