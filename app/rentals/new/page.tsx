@@ -133,6 +133,12 @@ export default function NewRentalPage() {
   const [endDate, setEndDate] =
     useState(defaultDates.end)
 
+  const [rentalPrice, setRentalPrice] =
+    useState('')
+
+  const [rentalDeposit, setRentalDeposit] =
+    useState('')
+
   const [loading, setLoading] =
     useState(false)
 
@@ -680,11 +686,41 @@ export default function NewRentalPage() {
 
       : 0
 
-  const totalPrice =
+  const calculatedPrice =
     selectedMachineData
       ? totalDays *
         selectedMachineData.daily_price
       : 0
+
+  useEffect(() => {
+
+    if (!selectedMachineData) {
+
+      setRentalPrice('')
+
+      setRentalDeposit('')
+
+      return
+    }
+
+    setRentalPrice(
+      String(calculatedPrice)
+    )
+
+    setRentalDeposit(
+      String(selectedMachineData.deposit || 0)
+    )
+
+  }, [
+    selectedMachineData,
+    calculatedPrice
+  ])
+
+  const finalRentalPrice =
+    Number(rentalPrice || 0)
+
+  const finalDeposit =
+    Number(rentalDeposit || 0)
 
   async function createContractNumber() {
 
@@ -783,6 +819,21 @@ export default function NewRentalPage() {
       showStatus(
         'error',
         'Vyplňte datum'
+      )
+
+      return
+    }
+
+    if (
+      Number.isNaN(finalRentalPrice) ||
+      Number.isNaN(finalDeposit) ||
+      finalRentalPrice < 0 ||
+      finalDeposit < 0
+    ) {
+
+      showStatus(
+        'error',
+        'Cena a kauce musí být platná čísla'
       )
 
       return
@@ -960,8 +1011,8 @@ export default function NewRentalPage() {
         {
           customer_id: customerId,
           machine_id: machine.id,
-          rental_price: totalPrice,
-          deposit: machine.deposit,
+          rental_price: finalRentalPrice,
+          deposit: finalDeposit,
           start_date: startDate,
           end_date: endDate,
           returned: false,
@@ -1045,8 +1096,8 @@ export default function NewRentalPage() {
         startDate,
         endDate,
         totalDays,
-        totalPrice,
-        deposit: machine.deposit,
+        totalPrice: finalRentalPrice,
+        deposit: finalDeposit,
         signature
       })
 
@@ -1059,12 +1110,15 @@ export default function NewRentalPage() {
         'Půjčka vytvořena. PDF se na tomto zařízení nepodařilo stáhnout.'
       )
 
-      setTimeout(() => {
+      if (reservationId) {
 
         window.location.href =
-          '/dashboard'
+          '/reservations'
 
-      }, 1000)
+        return
+      }
+
+      setLoading(false)
 
       return
     }
@@ -1074,12 +1128,41 @@ export default function NewRentalPage() {
       'Půjčka vytvořena'
     )
 
-    setTimeout(() => {
+    if (reservationId) {
 
       window.location.href =
-        '/dashboard'
+        '/reservations'
 
-    }, 1000)
+      return
+    }
+
+    const newDates =
+      createDefaultDates()
+
+    setCustomerName('')
+    setCustomerLastName('')
+    setPhone('')
+    setIdCard('')
+    setStreet('')
+    setHouseNumber('')
+    setZip('')
+    setCity('')
+    setSelectedMachine('')
+    setMachineSearch('')
+    setStartDate(newDates.start)
+    setEndDate(newDates.end)
+    setRentalPrice('')
+    setRentalDeposit('')
+    setSignature('')
+    setScannerOpen(false)
+
+    setLoading(false)
+
+    setTimeout(() => {
+
+      phoneInputRef.current?.focus()
+
+    }, 200)
   }
 
   return (
@@ -1542,7 +1625,7 @@ export default function NewRentalPage() {
             onSave={setSignature}
           />
 
-          <div className="bg-gray-100 rounded-3xl p-6 space-y-4">
+          <div className="bg-gray-100 rounded-3xl p-6 space-y-5">
 
             <div className="flex items-center justify-between">
 
@@ -1562,27 +1645,63 @@ export default function NewRentalPage() {
 
             </div>
 
-            <div className="flex justify-between">
+            <div className="grid md:grid-cols-2 gap-5">
 
-              <span>Cena půjčovného</span>
+              <div>
 
-              <span className="font-bold text-lg">
+                <label className="block mb-2 font-semibold">
 
-                {totalPrice} Kč
+                  Cena půjčovného
 
-              </span>
+                </label>
 
-            </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={rentalPrice}
+                  onChange={(e) =>
+                    setRentalPrice(
+                      e.target.value
+                    )
+                  }
+                  className="w-full border rounded-2xl p-4 text-lg font-semibold bg-white"
+                />
 
-            <div className="flex justify-between">
+                <p className="text-sm text-gray-500 mt-2">
 
-              <span>Vratná kauce</span>
+                  Ceníkový výpočet: {calculatedPrice} Kč
 
-              <span className="font-bold text-lg">
+                </p>
 
-                {selectedMachineData?.deposit || 0} Kč
+              </div>
 
-              </span>
+              <div>
+
+                <label className="block mb-2 font-semibold">
+
+                  Vratná kauce
+
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={rentalDeposit}
+                  onChange={(e) =>
+                    setRentalDeposit(
+                      e.target.value
+                    )
+                  }
+                  className="w-full border rounded-2xl p-4 text-lg font-semibold bg-white"
+                />
+
+                <p className="text-sm text-gray-500 mt-2">
+
+                  Výchozí kauce: {selectedMachineData?.deposit || 0} Kč
+
+                </p>
+
+              </div>
 
             </div>
 
