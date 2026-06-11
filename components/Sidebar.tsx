@@ -59,7 +59,7 @@ const links = [
     icon: BarChart3
   },
   {
-    href: '/history',
+    href: '/rentals/history',
     label: 'Historie půjček',
     icon: History
   },

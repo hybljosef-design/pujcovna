@@ -13,7 +13,9 @@ import {
   Phone,
   User,
   Clock3,
-  Users
+  Users,
+  History,
+  BarChart3
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
@@ -420,6 +422,60 @@ export default function DashboardPage() {
           </Link>
 
           <Link
+            href="/rentals/history"
+            className="
+              bg-white
+              rounded-3xl
+              p-7
+              shadow-lg
+              hover:scale-[1.02]
+              transition
+            "
+          >
+
+            <History
+              size={38}
+              className="mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2">
+              Historie půjček
+            </h2>
+
+            <p className="text-gray-500">
+              Přehled a úpravy půjček
+            </p>
+
+          </Link>
+
+          <Link
+            href="/statistics"
+            className="
+              bg-white
+              rounded-3xl
+              p-7
+              shadow-lg
+              hover:scale-[1.02]
+              transition
+            "
+          >
+
+            <BarChart3
+              size={38}
+              className="mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2">
+              Statistiky
+            </h2>
+
+            <p className="text-gray-500">
+              Výdělky a návratnost
+            </p>
+
+          </Link>
+
+          <Link
             href="/overdue"
             className="
               bg-red-50
@@ -652,21 +708,47 @@ export default function DashboardPage() {
 
                       </div>
 
-                      <Link
-                        href="/returns"
-                        className="
-                          bg-gray-100
-                          hover:bg-gray-200
-                          transition
-                          rounded-2xl
-                          px-5
-                          py-3
-                          font-semibold
-                          text-center
-                        "
-                      >
-                        Vrátit
-                      </Link>
+                      <div className="
+                        grid
+                        grid-cols-2
+                        gap-2
+                        lg:grid-cols-1
+                      ">
+
+                        <Link
+                          href="/rentals/history"
+                          className="
+                            bg-black
+                            hover:bg-gray-800
+                            transition
+                            rounded-2xl
+                            px-5
+                            py-3
+                            font-semibold
+                            text-center
+                            text-white
+                          "
+                        >
+                          Upravit
+                        </Link>
+
+                        <Link
+                          href="/returns"
+                          className="
+                            bg-gray-100
+                            hover:bg-gray-200
+                            transition
+                            rounded-2xl
+                            px-5
+                            py-3
+                            font-semibold
+                            text-center
+                          "
+                        >
+                          Vrátit
+                        </Link>
+
+                      </div>
 
                     </div>
 
