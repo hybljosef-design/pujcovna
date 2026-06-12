@@ -52,12 +52,42 @@ function formatDate(date: Date) {
   return date.toLocaleDateString('cs-CZ')
 }
 
+function toDateInputValue(date: Date) {
+  const offset = date.getTimezoneOffset()
+  const local = new Date(
+    date.getTime() -
+    offset * 60 * 1000
+  )
+
+  return local
+    .toISOString()
+    .slice(0, 10)
+}
+
 function isDateInRange(date: Date, start: string, end: string) {
   const day = startOfDay(date).getTime()
   const rangeStart = startOfDay(new Date(start)).getTime()
   const rangeEnd = startOfDay(new Date(end)).getTime()
 
   return day >= rangeStart && day <= rangeEnd
+}
+
+function getDaysBetween(start: string, end: string) {
+  const startDate = startOfDay(new Date(start))
+  const endDate = startOfDay(new Date(end))
+  const diff = endDate.getTime() - startDate.getTime()
+
+  return Math.max(
+    1,
+    Math.ceil(
+      diff / (
+        1000 *
+        60 *
+        60 *
+        24
+      )
+    ) + 1
+  )
 }
 
 export default function PublicMachineDetailPage() {
@@ -68,6 +98,19 @@ export default function PublicMachineDetailPage() {
   const [rentals, setRentals] = useState<Rental[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [selectedStart, setSelectedStart] = useState('')
+  const [selectedEnd, setSelectedEnd] = useState('')
+
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [note, setNote] = useState('')
+
+  const [sending, setSending] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     if (machineId) {
@@ -155,6 +198,201 @@ export default function PublicMachineDetailPage() {
     return rentalBlocked || reservationBlocked
   }
 
+  function hasBlockedDateInSelection(start: string, end: string) {
+    if (!start || !end) return true
+
+    const startDate = startOfDay(new Date(start))
+    const endDate = startOfDay(new Date(end))
+
+    if (endDate < startDate) return true
+
+    const current = new Date(startDate)
+
+    while (current <= endDate) {
+      if (isMachineBlockedOnDate(current)) {
+        return true
+      }
+
+      current.setDate(
+        current.getDate() + 1
+      )
+    }
+
+    return false
+  }
+
+  function selectDay(day: Date) {
+    setSuccessMessage('')
+    setErrorMessage('')
+
+    if (isMachineBlockedOnDate(day)) {
+      setErrorMessage(
+        'Tento den je obsazený. Vyberte zelený termín.'
+      )
+      return
+    }
+
+    const value = toDateInputValue(day)
+
+    if (!selectedStart || selectedEnd) {
+      setSelectedStart(value)
+      setSelectedEnd('')
+      return
+    }
+
+    if (new Date(value) < new Date(selectedStart)) {
+      setSelectedStart(value)
+      setSelectedEnd('')
+      return
+    }
+
+    if (hasBlockedDateInSelection(selectedStart, value)) {
+      setErrorMessage(
+        'Vybraný rozsah obsahuje obsazený den. Vyberte kratší termín.'
+      )
+      return
+    }
+
+    setSelectedEnd(value)
+  }
+
+  async function submitReservation() {
+    setSuccessMessage('')
+    setErrorMessage('')
+
+    if (!machine) return
+
+    if (!selectedStart || !selectedEnd) {
+      setErrorMessage(
+        'Vyberte začátek i konec rezervace v kalendáři.'
+      )
+      return
+    }
+
+    if (hasBlockedDateInSelection(selectedStart, selectedEnd)) {
+      setErrorMessage(
+        'Vybraný termín už není dostupný. Obnovte stránku a vyberte jiný termín.'
+      )
+      return
+    }
+
+    if (!firstName.trim() || !lastName.trim() || !phone.trim()) {
+      setErrorMessage(
+        'Vyplňte jméno, příjmení a telefon.'
+      )
+      return
+    }
+
+    setSending(true)
+
+    let customerId = ''
+
+    const { data: existingCustomer, error: existingError } =
+      await supabase
+        .from('customers')
+        .select('*')
+        .eq('phone', phone.trim())
+        .maybeSingle()
+
+    if (existingError) {
+      console.log(existingError)
+    }
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id
+
+      const { error: updateCustomerError } =
+        await supabase
+          .from('customers')
+          .update({
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: phone.trim(),
+            email: email.trim() || null
+          })
+          .eq('id', customerId)
+
+      if (updateCustomerError) {
+        console.log(updateCustomerError)
+      }
+    } else {
+      const { data: customer, error: customerError } =
+        await supabase
+          .from('customers')
+          .insert([
+            {
+              first_name: firstName.trim(),
+              last_name: lastName.trim(),
+              phone: phone.trim(),
+              email: email.trim() || null
+            }
+          ])
+          .select()
+          .single()
+
+      if (customerError) {
+        console.log(customerError)
+        setErrorMessage(
+          'Rezervaci se nepodařilo odeslat. Zkuste to prosím znovu.'
+        )
+        setSending(false)
+        return
+      }
+
+      customerId = customer.id
+    }
+
+    const onlineNote = [
+      'Online rezervace ze zákaznické půjčovny.',
+      note.trim()
+        ? `Poznámka zákazníka: ${note.trim()}`
+        : ''
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const { error: reservationError } =
+      await supabase
+        .from('reservations')
+        .insert([
+          {
+            machine_id: machine.id,
+            customer_id: customerId,
+            start_date: selectedStart,
+            end_date: selectedEnd,
+            note: onlineNote,
+            cancelled: false,
+            status: 'pending',
+            source: 'online'
+          }
+        ])
+
+    if (reservationError) {
+      console.log(reservationError)
+      setErrorMessage(
+        'Rezervaci se nepodařilo odeslat. Zkontrolujte údaje a zkuste to znovu.'
+      )
+      setSending(false)
+      return
+    }
+
+    setSuccessMessage(
+      'Rezervace byla odeslána. Ozveme se vám pro potvrzení termínu.'
+    )
+
+    setFirstName('')
+    setLastName('')
+    setPhone('')
+    setEmail('')
+    setNote('')
+    setSelectedStart('')
+    setSelectedEnd('')
+
+    await loadData()
+
+    setSending(false)
+  }
+
   const availability = useMemo(() => {
     const today = startOfDay(new Date())
 
@@ -187,7 +425,7 @@ export default function PublicMachineDetailPage() {
     const days = []
     const today = startOfDay(new Date())
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 30; i++) {
       const date = new Date(today)
       date.setDate(today.getDate() + i)
       days.push(date)
@@ -195,6 +433,16 @@ export default function PublicMachineDetailPage() {
 
     return days
   }, [])
+
+  const selectedDays =
+    selectedStart && selectedEnd
+      ? getDaysBetween(selectedStart, selectedEnd)
+      : 0
+
+  const calculatedPrice =
+    machine && selectedDays
+      ? machine.daily_price * selectedDays
+      : 0
 
   if (loading) {
     return (
@@ -305,30 +553,47 @@ export default function PublicMachineDetailPage() {
       <section className="max-w-7xl mx-auto px-4 py-8 grid lg:grid-cols-[1fr_0.7fr] gap-8">
         <div className="bg-white rounded-3xl shadow-lg p-6 lg:p-8">
           <h2 className="text-3xl font-black mb-4">
-            Dostupnost
+            Vyberte termín
           </h2>
 
           <p className="text-gray-500 mb-6">
-            Základní přehled dostupnosti na nejbližších 14 dní. Detailní výběr termínu bude v dalším kroku.
+            Zelené dny jsou volné, červené jsou obsazené. Klikněte na první a poslední den rezervace.
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {nextDays.map(day => {
               const blocked = isMachineBlockedOnDate(day)
+              const value = toDateInputValue(day)
+
+              const selected =
+                value === selectedStart ||
+                value === selectedEnd ||
+                (
+                  selectedStart &&
+                  selectedEnd &&
+                  new Date(value) >= new Date(selectedStart) &&
+                  new Date(value) <= new Date(selectedEnd)
+                )
 
               return (
-                <div
+                <button
                   key={day.toISOString()}
+                  type="button"
+                  disabled={blocked}
+                  onClick={() => selectDay(day)}
                   className={`
                     rounded-2xl
                     p-4
                     text-center
                     border
                     font-bold
+                    transition
 
                     ${blocked
-                      ? 'bg-red-50 text-red-700 border-red-200'
-                      : 'bg-green-50 text-green-700 border-green-200'}
+                      ? 'bg-red-50 text-red-700 border-red-200 cursor-not-allowed'
+                      : selected
+                        ? 'bg-black text-white border-black'
+                        : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}
                   `}
                 >
                   <div className="text-sm">
@@ -347,9 +612,11 @@ export default function PublicMachineDetailPage() {
                   <div className="text-xs mt-1">
                     {blocked
                       ? 'Obsazeno'
-                      : 'Volno'}
+                      : selected
+                        ? 'Vybráno'
+                        : 'Volno'}
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -365,17 +632,98 @@ export default function PublicMachineDetailPage() {
               </h2>
             </div>
 
-            <p className="text-gray-500 mb-5">
-              Online výběr termínu a odeslání rezervace připravíme v dalším kroku.
-            </p>
+            {selectedStart && selectedEnd ? (
+              <div className="bg-gray-100 rounded-2xl p-4 mb-5">
+                <p className="font-bold mb-1">
+                  Vybraný termín
+                </p>
 
-            <button
-              type="button"
-              disabled
-              className="w-full bg-gray-300 text-gray-600 rounded-2xl p-4 font-bold text-lg cursor-not-allowed"
-            >
-              Rezervace bude brzy dostupná
-            </button>
+                <p className="text-gray-600">
+                  {formatDate(new Date(selectedStart))}
+                  {' '}
+                  –
+                  {' '}
+                  {formatDate(new Date(selectedEnd))}
+                </p>
+
+                <p className="text-gray-600 mt-2">
+                  Předběžná cena: <strong>{calculatedPrice} Kč</strong>
+                </p>
+
+                <p className="text-gray-600">
+                  Kauce: <strong>{machine.deposit} Kč</strong>
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gray-100 rounded-2xl p-4 mb-5 text-gray-500">
+                Vyberte v kalendáři začátek a konec rezervace.
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="bg-red-50 text-red-700 rounded-2xl p-4 mb-4 font-semibold">
+                {errorMessage}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-green-50 text-green-700 rounded-2xl p-4 mb-4 font-semibold">
+                {successMessage}
+              </div>
+            )}
+
+            <div className="grid gap-4">
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Jméno"
+                className="w-full border rounded-2xl p-4"
+              />
+
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Příjmení"
+                className="w-full border rounded-2xl p-4"
+              />
+
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Telefon"
+                className="w-full border rounded-2xl p-4"
+              />
+
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="E-mail volitelně"
+                className="w-full border rounded-2xl p-4"
+              />
+
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Poznámka k rezervaci"
+                rows={3}
+                className="w-full border rounded-2xl p-4"
+              />
+
+              <button
+                type="button"
+                onClick={submitReservation}
+                disabled={sending}
+                className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 transition text-white rounded-2xl p-4 font-bold text-lg"
+              >
+                {sending
+                  ? 'Odesílám rezervaci...'
+                  : 'Odeslat rezervaci'}
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-3xl shadow-lg p-6">
@@ -383,15 +731,15 @@ export default function PublicMachineDetailPage() {
               <ShieldCheck size={24} />
 
               <h2 className="text-2xl font-black">
-                Co připravujeme
+                Jak to funguje
               </h2>
             </div>
 
             <ul className="space-y-3 text-gray-600">
-              <li>• Výběr termínu v kalendáři</li>
-              <li>• Online rezervace bez přihlášení</li>
-              <li>• Videonávody ke stroji</li>
-              <li>• Praktické pokyny k použití</li>
+              <li>• Rezervace je nezávazná do potvrzení obsluhou.</li>
+              <li>• Po odeslání vás kontaktujeme.</li>
+              <li>• Cena se může upravit podle skutečné dohody.</li>
+              <li>• Videonávody ke stroji připravujeme.</li>
             </ul>
           </div>
         </aside>
