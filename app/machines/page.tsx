@@ -1173,6 +1173,7 @@ export default function MachinesPage() {
                       </div>
 
 {role === 'admin' && (
+                        <>
 
                       <div className="
                         flex
@@ -1226,6 +1227,7 @@ export default function MachinesPage() {
 
                       </div>
 
+                        </>
                       )}
 
                     </div>
