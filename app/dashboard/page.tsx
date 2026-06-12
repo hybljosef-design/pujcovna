@@ -13,9 +13,7 @@ import {
   Phone,
   User,
   Clock3,
-  Users,
-  History,
-  BarChart3
+  Users
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
@@ -26,6 +24,7 @@ type ActiveRental = {
   end_date: string
   rental_price: number
   deposit: number
+  note?: string | null
   customers:
     | {
         first_name: string
@@ -41,9 +40,11 @@ type ActiveRental = {
   machines:
     | {
         name: string
+        daily_price?: number
       }
     | {
         name: string
+        daily_price?: number
       }[]
     | null
 }
@@ -96,6 +97,27 @@ export default function DashboardPage() {
 
   const [activeRentalList, setActiveRentalList] =
     useState<ActiveRental[]>([])
+
+  const [editingRental, setEditingRental] =
+    useState<ActiveRental | null>(null)
+
+  const [editStartDate, setEditStartDate] =
+    useState('')
+
+  const [editEndDate, setEditEndDate] =
+    useState('')
+
+  const [editRentalPrice, setEditRentalPrice] =
+    useState('')
+
+  const [editDeposit, setEditDeposit] =
+    useState('')
+
+  const [editNote, setEditNote] =
+    useState('')
+
+  const [editLoading, setEditLoading] =
+    useState(false)
 
   const [loading, setLoading] =
     useState(true)
@@ -168,13 +190,15 @@ export default function DashboardPage() {
           end_date,
           rental_price,
           deposit,
+          note,
           customers (
             first_name,
             last_name,
             phone
           ),
           machines (
-            name
+            name,
+            daily_price
           )
         `)
         .eq('returned', false)
@@ -209,6 +233,161 @@ export default function DashboardPage() {
     )
 
     setLoading(false)
+  }
+
+
+  function formatDateTimeLocal(value: string) {
+    const date = new Date(value)
+    const offset = date.getTimezoneOffset()
+    const local = new Date(
+      date.getTime() -
+      offset * 60 * 1000
+    )
+
+    return local
+      .toISOString()
+      .slice(0, 16)
+  }
+
+  function getRentalDays(
+    startDate: string,
+    endDate: string
+  ) {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diff = end.getTime() - start.getTime()
+
+    return Math.max(
+      1,
+      Math.ceil(
+        diff / (
+          1000 *
+          60 *
+          60 *
+          24
+        )
+      )
+    )
+  }
+
+  function openEditRental(
+    rental: ActiveRental
+  ) {
+    setEditingRental(rental)
+
+    setEditStartDate(
+      formatDateTimeLocal(
+        rental.start_date
+      )
+    )
+
+    setEditEndDate(
+      formatDateTimeLocal(
+        rental.end_date
+      )
+    )
+
+    setEditRentalPrice(
+      String(rental.rental_price || 0)
+    )
+
+    setEditDeposit(
+      String(rental.deposit || 0)
+    )
+
+    setEditNote(
+      rental.note || ''
+    )
+  }
+
+  function closeEditRental() {
+    setEditingRental(null)
+    setEditStartDate('')
+    setEditEndDate('')
+    setEditRentalPrice('')
+    setEditDeposit('')
+    setEditNote('')
+  }
+
+  function recalculateRentalPrice() {
+    if (!editingRental) return
+
+    const machine =
+      getMachine(editingRental)
+
+    const dailyPrice =
+      Number(machine?.daily_price || 0)
+
+    const days =
+      getRentalDays(
+        editStartDate,
+        editEndDate
+      )
+
+    setEditRentalPrice(
+      String(days * dailyPrice)
+    )
+  }
+
+  async function saveEditedRental() {
+    if (!editingRental) return
+
+    const priceValue =
+      Number(editRentalPrice || 0)
+
+    const depositValue =
+      Number(editDeposit || 0)
+
+    if (!editStartDate || !editEndDate) {
+      alert('Vyplňte datum od a datum do')
+      return
+    }
+
+    if (
+      new Date(editEndDate) <
+      new Date(editStartDate)
+    ) {
+      alert('Datum do nesmí být před datem od')
+      return
+    }
+
+    if (
+      Number.isNaN(priceValue) ||
+      Number.isNaN(depositValue) ||
+      priceValue < 0 ||
+      depositValue < 0
+    ) {
+      alert('Cena a kauce musí být platná čísla')
+      return
+    }
+
+    setEditLoading(true)
+
+    const { error } = await supabase
+      .from('rentals')
+      .update({
+        start_date: editStartDate,
+        end_date: editEndDate,
+        rental_price: priceValue,
+        deposit: depositValue,
+        note: editNote.trim()
+      })
+      .eq(
+        'id',
+        editingRental.id
+      )
+
+    if (error) {
+      console.log(error)
+      alert('Půjčku se nepodařilo upravit')
+      setEditLoading(false)
+      return
+    }
+
+    closeEditRental()
+    await loadDashboard()
+    alert('Půjčka upravena')
+    setEditLoading(false)
   }
 
   return (
@@ -417,60 +596,6 @@ export default function DashboardPage() {
 
             <p className="text-gray-500">
               Přehled vytížení
-            </p>
-
-          </Link>
-
-          <Link
-            href="/rentals/history"
-            className="
-              bg-white
-              rounded-3xl
-              p-7
-              shadow-lg
-              hover:scale-[1.02]
-              transition
-            "
-          >
-
-            <History
-              size={38}
-              className="mb-4"
-            />
-
-            <h2 className="text-2xl font-bold mb-2">
-              Historie půjček
-            </h2>
-
-            <p className="text-gray-500">
-              Přehled a úpravy půjček
-            </p>
-
-          </Link>
-
-          <Link
-            href="/statistics"
-            className="
-              bg-white
-              rounded-3xl
-              p-7
-              shadow-lg
-              hover:scale-[1.02]
-              transition
-            "
-          >
-
-            <BarChart3
-              size={38}
-              className="mb-4"
-            />
-
-            <h2 className="text-2xl font-bold mb-2">
-              Statistiky
-            </h2>
-
-            <p className="text-gray-500">
-              Výdělky a návratnost
             </p>
 
           </Link>
@@ -715,8 +840,13 @@ export default function DashboardPage() {
                         lg:grid-cols-1
                       ">
 
-                        <Link
-                          href="/rentals/history"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEditRental(
+                              rental
+                            )
+                          }
                           className="
                             bg-black
                             hover:bg-gray-800
@@ -730,7 +860,7 @@ export default function DashboardPage() {
                           "
                         >
                           Upravit
-                        </Link>
+                        </button>
 
                         <Link
                           href="/returns"
@@ -827,6 +957,285 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {editingRental && (
+
+        <div className="
+          fixed
+          inset-0
+          z-50
+          bg-black/50
+          flex
+          items-center
+          justify-center
+          p-4
+        ">
+
+          <div className="
+            bg-white
+            rounded-3xl
+            shadow-2xl
+            w-full
+            max-w-3xl
+            max-h-[90vh]
+            overflow-y-auto
+            p-6
+            lg:p-8
+          ">
+
+            <div className="
+              flex
+              items-start
+              justify-between
+              gap-4
+              mb-6
+            ">
+
+              <div>
+
+                <h2 className="text-3xl font-bold mb-2">
+                  Upravit aktivní půjčku
+                </h2>
+
+                <p className="text-gray-500">
+                  {getCustomer(editingRental)?.first_name}
+                  {' '}
+                  {getCustomer(editingRental)?.last_name}
+                  {' – '}
+                  {getMachine(editingRental)?.name}
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditRental}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-4
+                  py-3
+                  font-semibold
+                "
+              >
+                Zavřít
+              </button>
+
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Datum od
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={editStartDate}
+                  onChange={(e) =>
+                    setEditStartDate(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Datum do
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={editEndDate}
+                  onChange={(e) =>
+                    setEditEndDate(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Cena půjčovného
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={editRentalPrice}
+                  onChange={(e) =>
+                    setEditRentalPrice(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+                <p className="text-sm text-gray-500 mt-2">
+                  Cena stroje / den: {getMachine(editingRental)?.daily_price || 0} Kč
+                </p>
+
+              </div>
+
+              <div>
+
+                <label className="block mb-2 font-semibold">
+                  Kauce
+                </label>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={editDeposit}
+                  onChange={(e) =>
+                    setEditDeposit(
+                      e.target.value
+                    )
+                  }
+                  className="
+                    w-full
+                    border
+                    rounded-2xl
+                    p-4
+                    text-lg
+                  "
+                />
+
+              </div>
+
+            </div>
+
+            <div className="mt-5">
+
+              <button
+                type="button"
+                onClick={recalculateRentalPrice}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-5
+                  py-3
+                  font-semibold
+                "
+              >
+                Přepočítat cenu podle data
+              </button>
+
+            </div>
+
+            <div className="mt-5">
+
+              <label className="block mb-2 font-semibold">
+                Poznámka k půjčce
+              </label>
+
+              <textarea
+                value={editNote}
+                onChange={(e) =>
+                  setEditNote(
+                    e.target.value
+                  )
+                }
+                rows={4}
+                placeholder="Např. prodloužení půjčky, individuální cena, bez kauce..."
+                className="
+                  w-full
+                  border
+                  rounded-2xl
+                  p-4
+                "
+              />
+
+            </div>
+
+            <div className="
+              flex
+              flex-col
+              sm:flex-row
+              gap-3
+              mt-8
+            ">
+
+              <button
+                type="button"
+                onClick={saveEditedRental}
+                disabled={editLoading}
+                className="
+                  bg-black
+                  hover:bg-gray-800
+                  disabled:bg-gray-400
+                  transition
+                  text-white
+                  rounded-2xl
+                  px-6
+                  py-4
+                  font-semibold
+                  text-lg
+                "
+              >
+
+                {editLoading
+                  ? 'Ukládám změny...'
+                  : 'Uložit změny'}
+
+              </button>
+
+              <button
+                type="button"
+                onClick={closeEditRental}
+                className="
+                  bg-gray-100
+                  hover:bg-gray-200
+                  transition
+                  rounded-2xl
+                  px-6
+                  py-4
+                  font-semibold
+                  text-lg
+                "
+              >
+                Zrušit
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </main>
   )
