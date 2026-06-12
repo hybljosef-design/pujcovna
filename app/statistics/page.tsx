@@ -8,6 +8,8 @@ import {
 
 import Link from 'next/link'
 
+import { useRouter } from 'next/navigation'
+
 import {
   Activity,
   ArrowLeft,
@@ -164,6 +166,7 @@ function getPeriodStart(period: Period) {
 }
 
 export default function StatisticsPage() {
+  const router = useRouter()
   const [rentals, setRentals] =
     useState<Rental[]>([])
 
@@ -173,12 +176,41 @@ export default function StatisticsPage() {
   const [loading, setLoading] =
     useState(true)
 
+  const [authorized, setAuthorized] =
+    useState(false)
+
   const [errorMessage, setErrorMessage] =
     useState('')
 
   useEffect(() => {
-    loadStatistics()
+    checkAccess()
   }, [])
+
+  async function checkAccess() {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (data?.role !== 'admin') {
+      router.push('/dashboard')
+      return
+    }
+
+    setAuthorized(true)
+
+    await loadStatistics()
+  }
 
   async function loadStatistics() {
     setLoading(true)
@@ -453,6 +485,18 @@ export default function StatisticsPage() {
       label: 'Vše'
     }
   ]
+
+  if (!authorized) {
+    return (
+      <AuthGuard>
+        <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl shadow-lg p-8 text-center text-gray-500">
+            Ověřuji oprávnění...
+          </div>
+        </main>
+      </AuthGuard>
+    )
+  }
 
   return (
     <AuthGuard>

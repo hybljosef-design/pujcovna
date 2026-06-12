@@ -1,6 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import {
+  useEffect,
+  useState
+} from 'react'
 
 import Link from 'next/link'
 
@@ -20,53 +23,64 @@ import {
   BarChart3
 } from 'lucide-react'
 
+import { supabase } from '../lib/supabase'
+
 import UserMenu from './UserMenu'
 
 const links = [
   {
     href: '/dashboard',
     label: 'Dashboard',
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
+    adminOnly: false
   },
   {
     href: '/rentals/new',
     label: 'Nová půjčka',
-    icon: PlusCircle
+    icon: PlusCircle,
+    adminOnly: false
   },
   {
     href: '/returns',
     label: 'Vrácení strojů',
-    icon: Undo2
+    icon: Undo2,
+    adminOnly: false
   },
   {
     href: '/reservations',
     label: 'Rezervace',
-    icon: ClipboardList
+    icon: ClipboardList,
+    adminOnly: false
   },
   {
     href: '/machines',
     label: 'Stroje',
-    icon: Wrench
+    icon: Wrench,
+    adminOnly: false
   },
   {
     href: '/calendar',
     label: 'Kalendář',
-    icon: CalendarDays
+    icon: CalendarDays,
+    adminOnly: false
   },
   {
     href: '/statistics',
     label: 'Statistiky',
-    icon: BarChart3
+    icon: BarChart3,
+    adminOnly: true
   },
   {
     href: '/rentals/history',
     label: 'Historie půjček',
-    icon: History
+    icon: History,
+    adminOnly: false
   },
   {
     href: '/overdue',
     label: 'Po termínu',
-    icon: AlertTriangle
+    icon: AlertTriangle,
+    adminOnly: false
   }
 ]
 
@@ -75,6 +89,38 @@ export default function Sidebar() {
 
   const [mobileOpen, setMobileOpen] =
     useState(false)
+
+  const [role, setRole] =
+    useState('employee')
+
+  useEffect(() => {
+    loadRole()
+  }, [])
+
+  async function loadRole() {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (data?.role) {
+      setRole(data.role)
+    }
+  }
+
+  const visibleLinks =
+    links.filter(
+      link =>
+        !link.adminOnly ||
+        role === 'admin'
+    )
 
   function closeMobileMenu() {
     setMobileOpen(false)
@@ -171,7 +217,7 @@ export default function Sidebar() {
               mb-6
             ">
 
-              {links.map((link) => {
+              {visibleLinks.map((link) => {
                 const Icon = link.icon
                 const active = pathname === link.href
 
@@ -246,7 +292,7 @@ export default function Sidebar() {
           flex-1
         ">
 
-          {links.map((link) => {
+          {visibleLinks.map((link) => {
             const Icon = link.icon
             const active = pathname === link.href
 

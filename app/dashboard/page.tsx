@@ -13,7 +13,9 @@ import {
   Phone,
   User,
   Clock3,
-  Users
+  Users,
+  History,
+  BarChart3
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
@@ -119,12 +121,34 @@ export default function DashboardPage() {
   const [editLoading, setEditLoading] =
     useState(false)
 
+  const [role, setRole] =
+    useState('employee')
+
   const [loading, setLoading] =
     useState(true)
 
   useEffect(() => {
+    loadRole()
     loadDashboard()
   }, [])
+
+  async function loadRole() {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (data?.role) {
+      setRole(data.role)
+    }
+  }
 
   async function loadDashboard() {
     setLoading(true)
@@ -599,6 +623,64 @@ export default function DashboardPage() {
             </p>
 
           </Link>
+
+          <Link
+            href="/rentals/history"
+            className="
+              bg-white
+              rounded-3xl
+              p-7
+              shadow-lg
+              hover:scale-[1.02]
+              transition
+            "
+          >
+
+            <History
+              size={38}
+              className="mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2">
+              Historie půjček
+            </h2>
+
+            <p className="text-gray-500">
+              Přehled a úpravy půjček
+            </p>
+
+          </Link>
+
+          {role === 'admin' && (
+
+            <Link
+              href="/statistics"
+              className="
+                bg-white
+                rounded-3xl
+                p-7
+                shadow-lg
+                hover:scale-[1.02]
+                transition
+              "
+            >
+
+              <BarChart3
+                size={38}
+                className="mb-4"
+              />
+
+              <h2 className="text-2xl font-bold mb-2">
+                Statistiky
+              </h2>
+
+              <p className="text-gray-500">
+                Výdělky a návratnost
+              </p>
+
+            </Link>
+
+          )}
 
           <Link
             href="/overdue"

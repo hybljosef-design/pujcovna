@@ -187,6 +187,15 @@ export default function MachinesPage() {
 
   async function createMachine() {
 
+    if (role !== 'admin') {
+
+      alert(
+        'Stroj může přidat pouze admin'
+      )
+
+      return
+    }
+
     if (
       !name ||
       !dailyPrice ||
@@ -816,6 +825,8 @@ export default function MachinesPage() {
 
         </div>
 
+        {role === 'admin' && (
+
         <div className="
           bg-white
           rounded-3xl
@@ -881,6 +892,9 @@ export default function MachinesPage() {
           </button>
 
         </div>
+
+
+        )}
 
         <div className="
           bg-white
@@ -1158,6 +1172,8 @@ export default function MachinesPage() {
 
                       </div>
 
+{role === 'admin' && (
+
                       <div className="
                         flex
                         items-center
@@ -1209,6 +1225,8 @@ export default function MachinesPage() {
                         </span>
 
                       </div>
+
+                      )}
 
                     </div>
 
@@ -1396,7 +1414,7 @@ export default function MachinesPage() {
 
       </div>
 
-      {createOpen && (
+      {createOpen && role === 'admin' && (
 
         <div className="
           fixed
