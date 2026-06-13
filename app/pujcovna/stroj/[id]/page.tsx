@@ -101,6 +101,7 @@ export default function PublicMachineDetailPage() {
 
   const [selectedStart, setSelectedStart] = useState('')
   const [selectedEnd, setSelectedEnd] = useState('')
+  const [selectedDates, setSelectedDates] = useState<string[]>([])
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -221,6 +222,57 @@ export default function PublicMachineDetailPage() {
     return false
   }
 
+  function getDateRangeValues(
+    start: string,
+    end: string
+  ) {
+    const result: string[] = []
+
+    const startDate = startOfDay(
+      new Date(start)
+    )
+
+    const endDate = startOfDay(
+      new Date(end)
+    )
+
+    const current =
+      new Date(startDate)
+
+    while (current <= endDate) {
+      result.push(
+        toDateInputValue(current)
+      )
+
+      current.setDate(
+        current.getDate() + 1
+      )
+    }
+
+    return result
+  }
+
+  function applySelectedDates(
+    values: string[]
+  ) {
+    const sorted =
+      [...values].sort(
+        (a, b) =>
+          new Date(a).getTime() -
+          new Date(b).getTime()
+      )
+
+    setSelectedDates(sorted)
+
+    setSelectedStart(
+      sorted[0] || ''
+    )
+
+    setSelectedEnd(
+      sorted[sorted.length - 1] || ''
+    )
+  }
+
   function selectDay(day: Date) {
     setSuccessMessage('')
     setErrorMessage('')
@@ -232,28 +284,65 @@ export default function PublicMachineDetailPage() {
       return
     }
 
-    const value = toDateInputValue(day)
+    const value =
+      toDateInputValue(day)
 
-    if (!selectedStart || selectedEnd) {
-      setSelectedStart(value)
-      setSelectedEnd('')
+    if (selectedDates.includes(value)) {
+      const next =
+        selectedDates.filter(
+          item => item !== value
+        )
+
+      applySelectedDates(next)
+
       return
     }
 
-    if (new Date(value) < new Date(selectedStart)) {
-      setSelectedStart(value)
-      setSelectedEnd('')
+    if (selectedDates.length === 0) {
+      applySelectedDates([
+        value
+      ])
+
       return
     }
 
-    if (hasBlockedDateInSelection(selectedStart, value)) {
+    const currentStart =
+      selectedStart || selectedDates[0]
+
+    const rangeStart =
+      new Date(value) <
+      new Date(currentStart)
+        ? value
+        : currentStart
+
+    const rangeEnd =
+      new Date(value) >
+      new Date(selectedEnd || currentStart)
+        ? value
+        : selectedEnd || currentStart
+
+    if (
+      hasBlockedDateInSelection(
+        rangeStart,
+        rangeEnd
+      )
+    ) {
       setErrorMessage(
         'Vybraný rozsah obsahuje obsazený den. Vyberte kratší termín.'
       )
+
       return
     }
 
-    setSelectedEnd(value)
+    const rangeValues =
+      getDateRangeValues(
+        rangeStart,
+        rangeEnd
+      )
+
+    applySelectedDates(
+      rangeValues
+    )
   }
 
   async function submitReservation() {
@@ -262,9 +351,9 @@ export default function PublicMachineDetailPage() {
 
     if (!machine) return
 
-    if (!selectedStart || !selectedEnd) {
+    if (selectedDates.length === 0) {
       setErrorMessage(
-        'Vyberte začátek i konec rezervace v kalendáři.'
+        'Vyberte v kalendáři alespoň jeden den rezervace.'
       )
       return
     }
@@ -387,6 +476,7 @@ export default function PublicMachineDetailPage() {
     setNote('')
     setSelectedStart('')
     setSelectedEnd('')
+    setSelectedDates([])
 
     await loadData()
 
@@ -435,9 +525,7 @@ export default function PublicMachineDetailPage() {
   }, [])
 
   const selectedDays =
-    selectedStart && selectedEnd
-      ? getDaysBetween(selectedStart, selectedEnd)
-      : 0
+    selectedDates.length
 
   const calculatedPrice =
     machine && selectedDays
@@ -557,7 +645,7 @@ export default function PublicMachineDetailPage() {
           </h2>
 
           <p className="text-gray-500 mb-6">
-            Zelené dny jsou volné, červené jsou obsazené. Klikněte na první a poslední den rezervace.
+            Zelené dny jsou volné, červené jsou obsazené. Vyberte jeden den, více dní postupně, nebo klikněte na první a poslední den delšího termínu.
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -566,14 +654,7 @@ export default function PublicMachineDetailPage() {
               const value = toDateInputValue(day)
 
               const selected =
-                value === selectedStart ||
-                value === selectedEnd ||
-                (
-                  selectedStart &&
-                  selectedEnd &&
-                  new Date(value) >= new Date(selectedStart) &&
-                  new Date(value) <= new Date(selectedEnd)
-                )
+                selectedDates.includes(value)
 
               return (
                 <button
@@ -632,18 +713,18 @@ export default function PublicMachineDetailPage() {
               </h2>
             </div>
 
-            {selectedStart && selectedEnd ? (
+            {selectedDates.length > 0 ? (
               <div className="bg-gray-100 rounded-2xl p-4 mb-5">
                 <p className="font-bold mb-1">
                   Vybraný termín
                 </p>
 
                 <p className="text-gray-600">
-                  {formatDate(new Date(selectedStart))}
-                  {' '}
-                  –
-                  {' '}
-                  {formatDate(new Date(selectedEnd))}
+                  {selectedStart && selectedEnd && selectedStart !== selectedEnd
+                    ? `${formatDate(new Date(selectedStart))} – ${formatDate(new Date(selectedEnd))}`
+                    : selectedStart
+                      ? formatDate(new Date(selectedStart))
+                      : ''}
                 </p>
 
                 <p className="text-gray-600 mt-2">
@@ -656,7 +737,7 @@ export default function PublicMachineDetailPage() {
               </div>
             ) : (
               <div className="bg-gray-100 rounded-2xl p-4 mb-5 text-gray-500">
-                Vyberte v kalendáři začátek a konec rezervace.
+                Vyberte v kalendáři jeden nebo více volných dní.
               </div>
             )}
 
