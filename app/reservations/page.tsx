@@ -8,7 +8,9 @@ import {
   User,
   Wrench,
   CalendarDays,
-  FileText
+  FileText,
+  BellRing,
+  CheckCircle
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
@@ -20,6 +22,8 @@ type Reservation = {
   start_date: string
   end_date: string
   note: string
+  status?: string | null
+  source?: string | null
 
   customers:
     | {
@@ -89,6 +93,43 @@ function formatDate(
   )
 }
 
+
+function getSourceLabel(
+  reservation: Reservation
+) {
+
+  return reservation.source === 'online'
+    ? 'Online rezervace'
+    : 'Rezervace pobočky'
+}
+
+function getStatusLabel(
+  reservation: Reservation
+) {
+
+  if (reservation.status === 'pending') {
+
+    return 'Čeká na potvrzení'
+  }
+
+  if (reservation.status === 'confirmed') {
+
+    return 'Potvrzeno'
+  }
+
+  return 'Potvrzeno'
+}
+
+function isOnlinePending(
+  reservation: Reservation
+) {
+
+  return (
+    reservation.source === 'online' &&
+    reservation.status === 'pending'
+  )
+}
+
 export default function ReservationsPage() {
 
   const [reservations, setReservations] =
@@ -96,6 +137,14 @@ export default function ReservationsPage() {
 
   const [loading, setLoading] =
     useState(true)
+
+  const pendingOnlineCount =
+    reservations.filter(
+      reservation =>
+        isOnlinePending(
+          reservation
+        )
+    ).length
 
   useEffect(() => {
 
@@ -145,6 +194,29 @@ export default function ReservationsPage() {
     )
 
     setLoading(false)
+  }
+
+
+  async function confirmReservation(
+    id: string
+  ) {
+
+    const { error } =
+      await supabase
+        .from('reservations')
+        .update({
+          status: 'confirmed'
+        })
+        .eq('id', id)
+
+    if (error) {
+
+      alert(error.message)
+
+      return
+    }
+
+    await loadReservations()
   }
 
   async function deleteReservation(
@@ -242,6 +314,42 @@ export default function ReservationsPage() {
 
         </div>
 
+        {pendingOnlineCount > 0 && (
+
+          <div className="
+            bg-orange-50
+            border
+            border-orange-200
+            text-orange-800
+            rounded-3xl
+            p-5
+            mb-6
+            flex
+            items-center
+            gap-4
+            shadow-sm
+          ">
+
+            <BellRing size={28} />
+
+            <div>
+
+              <div className="text-xl font-bold">
+                Nové online rezervace
+              </div>
+
+              <div>
+                Čeká na potvrzení:
+                {' '}
+                <strong>{pendingOnlineCount}</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
         <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
 
           {loading ? (
@@ -290,6 +398,14 @@ export default function ReservationsPage() {
 
                       <th className="p-4 text-left">
                         Do
+                      </th>
+
+                      <th className="p-4 text-left">
+                        Stav
+                      </th>
+
+                      <th className="p-4 text-left">
+                        Zdroj
                       </th>
 
                       <th className="p-4 text-left">
@@ -412,6 +528,58 @@ export default function ReservationsPage() {
 
                             </td>
 
+                            <td className="p-4">
+
+                              <span className={`
+                                inline-flex
+                                items-center
+                                gap-2
+                                px-3
+                                py-2
+                                rounded-xl
+                                text-sm
+                                font-bold
+
+                                ${isOnlinePending(reservation)
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-green-100 text-green-700'}
+                              `}>
+
+                                {isOnlinePending(reservation) && (
+                                  <BellRing size={15} />
+                                )}
+
+                                {!isOnlinePending(reservation) && (
+                                  <CheckCircle size={15} />
+                                )}
+
+                                {getStatusLabel(reservation)}
+
+                              </span>
+
+                            </td>
+
+                            <td className="p-4">
+
+                              <span className={`
+                                inline-flex
+                                px-3
+                                py-2
+                                rounded-xl
+                                text-sm
+                                font-bold
+
+                                ${reservation.source === 'online'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-gray-100 text-gray-700'}
+                              `}>
+
+                                {getSourceLabel(reservation)}
+
+                              </span>
+
+                            </td>
+
                             <td className="p-4 max-w-xs">
 
                               <div className="line-clamp-2">
@@ -425,6 +593,31 @@ export default function ReservationsPage() {
                             <td className="p-4">
 
                               <div className="flex flex-wrap gap-2">
+
+                                {isOnlinePending(reservation) && (
+
+                                  <button
+                                    onClick={() =>
+                                      confirmReservation(
+                                        reservation.id
+                                      )
+                                    }
+                                    className="
+                                      bg-orange-600
+                                      text-white
+                                      px-4
+                                      py-2
+                                      rounded-xl
+                                      text-sm
+                                      font-medium
+                                    "
+                                  >
+
+                                    Potvrdit
+
+                                  </button>
+
+                                )}
 
                                 <Link
                                   href={`/rentals/new?reservation=${reservation.id}`}
@@ -543,6 +736,54 @@ export default function ReservationsPage() {
 
                           </div>
 
+                          <div className="flex flex-wrap gap-2 mt-3">
+
+                            <span className={`
+                              inline-flex
+                              items-center
+                              gap-2
+                              px-3
+                              py-2
+                              rounded-xl
+                              text-sm
+                              font-bold
+
+                              ${isOnlinePending(reservation)
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-green-100 text-green-700'}
+                            `}>
+
+                              {isOnlinePending(reservation) && (
+                                <BellRing size={15} />
+                              )}
+
+                              {!isOnlinePending(reservation) && (
+                                <CheckCircle size={15} />
+                              )}
+
+                              {getStatusLabel(reservation)}
+
+                            </span>
+
+                            <span className={`
+                              inline-flex
+                              px-3
+                              py-2
+                              rounded-xl
+                              text-sm
+                              font-bold
+
+                              ${reservation.source === 'online'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-700'}
+                            `}>
+
+                              {getSourceLabel(reservation)}
+
+                            </span>
+
+                          </div>
+
                           {customer?.id_card && (
 
                             <div className="text-sm text-gray-500 mt-1">
@@ -653,6 +894,31 @@ export default function ReservationsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-2 pt-2">
+
+                          {isOnlinePending(reservation) && (
+
+                            <button
+                              onClick={() =>
+                                confirmReservation(
+                                  reservation.id
+                                )
+                              }
+                              className="
+                                bg-orange-600
+                                text-white
+                                px-4
+                                py-3
+                                rounded-xl
+                                text-sm
+                                font-medium
+                              "
+                            >
+
+                              Potvrdit rezervaci
+
+                            </button>
+
+                          )}
 
                           <Link
                             href={`/rentals/new?reservation=${reservation.id}`}
