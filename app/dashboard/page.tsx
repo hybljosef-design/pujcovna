@@ -20,7 +20,7 @@ import {
 
 import { supabase } from '../../lib/supabase'
 
-import OnlineReservationAlert from '../../components/OnlineReservationAlert'
+import OnlineReservationAlert from '@/components/OnlineReservationAlert'
 
 type ActiveRental = {
   id: string
