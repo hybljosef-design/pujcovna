@@ -20,6 +20,8 @@ import {
 
 import { supabase } from '../../lib/supabase'
 
+import OnlineReservationAlert from '../../components/OnlineReservationAlert'
+
 type ActiveRental = {
   id: string
   start_date: string
@@ -416,6 +418,8 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-100 p-4 lg:p-8">
+
+      <OnlineReservationAlert />
 
       <div className="max-w-7xl mx-auto">
 
