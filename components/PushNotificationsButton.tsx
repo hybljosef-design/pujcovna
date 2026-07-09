@@ -98,11 +98,14 @@ export default function PushNotificationsButton() {
           '/sw.js'
         )
 
-      const existingSubscription =
+      const oldSubscription =
         await registration.pushManager.getSubscription()
 
+      if (oldSubscription) {
+        await oldSubscription.unsubscribe()
+      }
+
       const subscription =
-        existingSubscription ||
         await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey:
