@@ -465,6 +465,31 @@ export default function PublicMachineDetailPage() {
       return
     }
 
+    try {
+      await fetch(
+        '/api/push/reservation',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            machineName: machine.name,
+            customerName:
+              `${firstName.trim()} ${lastName.trim()}`,
+            phone: phone.trim(),
+            startDate: selectedStart,
+            endDate: selectedEnd
+          })
+        }
+      )
+    } catch (pushError) {
+      console.log(
+        'Push oznámení se nepodařilo odeslat:',
+        pushError
+      )
+    }
+
     setSuccessMessage(
       'Rezervace byla odeslána. Ozveme se vám pro potvrzení termínu.'
     )
