@@ -21,6 +21,7 @@ import {
 import { supabase } from '../../lib/supabase'
 
 import OnlineReservationAlert from '@/components/OnlineReservationAlert'
+import PushNotificationsButton from '@/components/PushNotificationsButton'
 
 type ActiveRental = {
   id: string
@@ -429,9 +430,22 @@ export default function DashboardPage() {
             Dashboard
           </h1>
 
-          <p className="text-gray-500 text-lg">
-            Rychlá obsluha půjčovny strojů
-          </p>
+          <div className="
+            flex
+            flex-col
+            lg:flex-row
+            lg:items-center
+            lg:justify-between
+            gap-4
+          ">
+
+            <p className="text-gray-500 text-lg">
+              Rychlá obsluha půjčovny strojů
+            </p>
+
+            <PushNotificationsButton />
+
+          </div>
 
         </div>
 
