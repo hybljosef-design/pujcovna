@@ -421,6 +421,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-gray-100 p-4 lg:p-8">
 
       <OnlineReservationAlert />
+      <PushNotificationsButton />
 
       <div className="max-w-7xl mx-auto">
 
@@ -430,22 +431,9 @@ export default function DashboardPage() {
             Dashboard
           </h1>
 
-          <div className="
-            flex
-            flex-col
-            lg:flex-row
-            lg:items-center
-            lg:justify-between
-            gap-4
-          ">
-
-            <p className="text-gray-500 text-lg">
-              Rychlá obsluha půjčovny strojů
-            </p>
-
-            <PushNotificationsButton />
-
-          </div>
+          <p className="text-gray-500 text-lg">
+            Rychlá obsluha půjčovny strojů
+          </p>
 
         </div>
 
