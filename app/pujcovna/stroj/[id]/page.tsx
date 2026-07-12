@@ -11,9 +11,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  ImageIcon,
   RotateCcw,
   ShieldCheck,
-  Wrench
+  Wrench,
+  X
 } from 'lucide-react'
 
 import { supabase } from '../../../../lib/supabase'
@@ -44,6 +46,14 @@ type Reservation = {
   end_date: string
   cancelled?: boolean
   status?: string | null
+}
+
+type MachineImage = {
+  id: string
+  machine_id: string
+  image_url: string
+  is_primary: boolean
+  sort_order: number
 }
 
 function startOfDay(date: Date) {
@@ -138,6 +148,16 @@ export default function PublicMachineDetailPage() {
   const [machine, setMachine] = useState<Machine | null>(null)
   const [rentals, setRentals] = useState<Rental[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
+
+  const [machineImages, setMachineImages] =
+    useState<MachineImage[]>([])
+
+  const [selectedImageUrl, setSelectedImageUrl] =
+    useState('')
+
+  const [imagePreviewOpen, setImagePreviewOpen] =
+    useState(false)
+
   const [loading, setLoading] = useState(true)
 
   const [selectedStart, setSelectedStart] = useState('')
@@ -168,7 +188,12 @@ export default function PublicMachineDetailPage() {
   async function loadData() {
     setLoading(true)
 
-    const [machineResult, rentalsResult, reservationsResult] =
+    const [
+      machineResult,
+      rentalsResult,
+      reservationsResult,
+      machineImagesResult
+    ] =
       await Promise.all([
         supabase
           .from('machines')
@@ -208,7 +233,24 @@ export default function PublicMachineDetailPage() {
             status
           `)
           .eq('machine_id', machineId)
-          .eq('cancelled', false)
+          .eq('cancelled', false),
+
+        supabase
+          .from('machine_images')
+          .select(`
+            id,
+            machine_id,
+            image_url,
+            is_primary,
+            sort_order
+          `)
+          .eq('machine_id', machineId)
+          .order('is_primary', {
+            ascending: false
+          })
+          .order('sort_order', {
+            ascending: true
+          })
       ])
 
     if (machineResult.error) {
@@ -221,6 +263,16 @@ export default function PublicMachineDetailPage() {
     setMachine(machineResult.data)
     setRentals(rentalsResult.data || [])
     setReservations(reservationsResult.data || [])
+
+    const loadedImages =
+      (machineImagesResult.data || []) as MachineImage[]
+
+    setMachineImages(loadedImages)
+
+    setSelectedImageUrl(
+      loadedImages[0]?.image_url || ''
+    )
+
     setLoading(false)
   }
 
@@ -744,10 +796,105 @@ export default function PublicMachineDetailPage() {
                 {machine.name}
               </h1>
 
-              <p className="text-gray-300 text-lg lg:text-xl max-w-3xl">
+              <p className="text-gray-300 text-lg lg:text-xl max-w-3xl mb-8">
                 {machine.public_description ||
                   'Popis stroje připravujeme. Pro více informací nás kontaktujte nebo pokračujte na rezervaci.'}
               </p>
+
+              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedImageUrl) {
+                      setImagePreviewOpen(true)
+                    }
+                  }}
+                  className="
+                    block
+                    w-full
+                    aspect-[4/3]
+                    bg-gray-100
+                    overflow-hidden
+                  "
+                >
+                  {selectedImageUrl ? (
+                    <img
+                      src={selectedImageUrl}
+                      alt={machine.name}
+                      className="
+                        w-full
+                        h-full
+                        object-cover
+                        hover:scale-[1.02]
+                        transition
+                        duration-300
+                      "
+                    />
+                  ) : (
+                    <div className="
+                      w-full
+                      h-full
+                      flex
+                      flex-col
+                      items-center
+                      justify-center
+                      gap-3
+                      text-gray-400
+                    ">
+                      <ImageIcon size={54} />
+                      <span className="font-semibold">
+                        Fotografie se připravuje
+                      </span>
+                    </div>
+                  )}
+                </button>
+
+                {machineImages.length > 1 && (
+                  <div className="
+                    p-4
+                    grid
+                    grid-cols-4
+                    sm:grid-cols-5
+                    gap-3
+                    bg-white
+                  ">
+                    {machineImages.map(image => (
+                      <button
+                        key={image.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageUrl(
+                            image.image_url
+                          )
+                        }
+                        className={`
+                          aspect-square
+                          rounded-2xl
+                          overflow-hidden
+                          border-4
+                          transition
+
+                          ${selectedImageUrl === image.image_url
+                            ? 'border-black'
+                            : 'border-transparent hover:border-gray-300'}
+                        `}
+                      >
+                        <img
+                          src={image.image_url}
+                          alt={machine.name}
+                          className="
+                            w-full
+                            h-full
+                            object-cover
+                          "
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+              </div>
             </div>
 
             <div className="bg-white text-black rounded-3xl p-6 shadow-2xl">
@@ -1094,6 +1241,57 @@ export default function PublicMachineDetailPage() {
           </div>
         </aside>
       </section>
+
+      {imagePreviewOpen && selectedImageUrl && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[120]
+            bg-black/90
+            flex
+            items-center
+            justify-center
+            p-4
+          "
+          onClick={() =>
+            setImagePreviewOpen(false)
+          }
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setImagePreviewOpen(false)
+            }
+            className="
+              absolute
+              top-4
+              right-4
+              bg-white
+              text-black
+              rounded-2xl
+              p-3
+            "
+          >
+            <X size={24} />
+          </button>
+
+          <img
+            src={selectedImageUrl}
+            alt={machine.name}
+            className="
+              max-w-full
+              max-h-[90vh]
+              object-contain
+              rounded-2xl
+            "
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          />
+        </div>
+      )}
+
     </main>
   )
 }
