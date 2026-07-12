@@ -271,13 +271,11 @@ export default function CalendarPage() {
     }
 
     setRentals(
-      (rentalsResult.data || [])
-        as unknown as Rental[]
+      (rentalsResult.data || []) as unknown as Rental[]
     )
 
     setReservations(
-      (reservationsResult.data || [])
-        as unknown as Reservation[]
+      (reservationsResult.data || []) as unknown as Reservation[]
     )
 
     setLoading(false)
