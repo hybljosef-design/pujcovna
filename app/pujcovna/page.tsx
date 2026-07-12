@@ -12,6 +12,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  ImageIcon,
   Wrench
 } from 'lucide-react'
 
@@ -25,6 +26,7 @@ type Machine = {
   active?: boolean
   status?: string
   barcode?: string
+  primary_image_url?: string | null
 }
 
 type Rental = {
@@ -39,6 +41,13 @@ type Reservation = {
   start_date: string
   end_date: string
   cancelled?: boolean
+}
+
+type MachineImage = {
+  machine_id: string
+  image_url: string
+  is_primary: boolean
+  sort_order: number
 }
 
 function startOfDay(date: Date) {
@@ -99,7 +108,8 @@ export default function PublicRentalCatalogPage() {
     const [
       machinesResult,
       rentalsResult,
-      reservationsResult
+      reservationsResult,
+      machineImagesResult
     ] = await Promise.all([
       supabase
         .from('machines')
@@ -133,7 +143,22 @@ export default function PublicRentalCatalogPage() {
           end_date,
           cancelled
         `)
-        .eq('cancelled', false)
+        .eq('cancelled', false),
+
+      supabase
+        .from('machine_images')
+        .select(`
+          machine_id,
+          image_url,
+          is_primary,
+          sort_order
+        `)
+        .order('is_primary', {
+          ascending: false
+        })
+        .order('sort_order', {
+          ascending: true
+        })
     ])
 
     if (machinesResult.error) {
@@ -148,7 +173,45 @@ export default function PublicRentalCatalogPage() {
       console.log(reservationsResult.error)
     }
 
-    setMachines(machinesResult.data || [])
+    if (machineImagesResult.error) {
+      console.log(machineImagesResult.error)
+    }
+
+    const machineImages =
+      (machineImagesResult.data || [])
+        as MachineImage[]
+
+    const imageMap =
+      new Map<string, string>()
+
+    machineImages.forEach(
+      image => {
+        if (
+          !imageMap.has(
+            image.machine_id
+          )
+        ) {
+          imageMap.set(
+            image.machine_id,
+            image.image_url
+          )
+        }
+      }
+    )
+
+    const preparedMachines =
+      (machinesResult.data || [])
+        .map(
+          machine => ({
+            ...machine,
+            primary_image_url:
+              imageMap.get(
+                machine.id
+              ) || null
+          })
+        )
+
+    setMachines(preparedMachines)
     setRentals(rentalsResult.data || [])
     setReservations(reservationsResult.data || [])
 
@@ -313,10 +376,73 @@ export default function PublicRentalCatalogPage() {
 
                   <article
                     key={machine.id}
-                    className="bg-white rounded-3xl shadow-lg overflow-hidden"
+                    className="
+                      bg-white
+                      rounded-3xl
+                      shadow-lg
+                      overflow-hidden
+                      flex
+                      flex-col
+                    "
                   >
 
-                    <div className="p-6">
+                    <Link
+                      href={`/pujcovna/stroj/${machine.id}`}
+                      className="
+                        block
+                        aspect-[4/3]
+                        bg-gray-200
+                        overflow-hidden
+                      "
+                    >
+
+                      {machine.primary_image_url ? (
+
+                        <img
+                          src={machine.primary_image_url}
+                          alt={machine.name}
+                          className="
+                            w-full
+                            h-full
+                            object-cover
+                            hover:scale-105
+                            transition
+                            duration-300
+                          "
+                        />
+
+                      ) : (
+
+                        <div className="
+                          w-full
+                          h-full
+                          flex
+                          flex-col
+                          items-center
+                          justify-center
+                          gap-3
+                          text-gray-400
+                          bg-gray-100
+                        ">
+
+                          <ImageIcon size={52} />
+
+                          <span className="font-semibold">
+                            Fotografie se připravuje
+                          </span>
+
+                        </div>
+
+                      )}
+
+                    </Link>
+
+                    <div className="
+                      p-6
+                      flex
+                      flex-col
+                      flex-1
+                    ">
 
                       <div className="flex items-start justify-between gap-4 mb-5">
 
@@ -412,7 +538,20 @@ export default function PublicRentalCatalogPage() {
 
                       <Link
                         href={`/pujcovna/stroj/${machine.id}`}
-                        className="block w-full bg-black hover:bg-gray-800 transition text-white text-center rounded-2xl p-4 font-bold text-lg"
+                        className="
+                          block
+                          w-full
+                          mt-auto
+                          bg-black
+                          hover:bg-gray-800
+                          transition
+                          text-white
+                          text-center
+                          rounded-2xl
+                          p-4
+                          font-bold
+                          text-lg
+                        "
                       >
 
                         Detail a rezervace
