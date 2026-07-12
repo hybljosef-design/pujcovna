@@ -178,8 +178,7 @@ export default function PublicRentalCatalogPage() {
     }
 
     const machineImages =
-      (machineImagesResult.data || [])
-        as MachineImage[]
+      (machineImagesResult.data || []) as MachineImage[]
 
     const imageMap =
       new Map<string, string>()
