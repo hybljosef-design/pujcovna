@@ -8,9 +8,9 @@ import {
 
 import { supabase } from '../../lib/supabase'
 
-import QRCode from 'qrcode'
-
 import { generateQrLabelPdf } from '../../lib/generateQrLabelPdf'
+
+import MachineImages from '@/components/MachineImages'
 
 import {
   Plus,
@@ -20,8 +20,16 @@ import {
   CheckCircle,
   QrCode,
   Shield,
-  Search
+  Search,
+  Camera,
+  ImageIcon
 } from 'lucide-react'
+
+type MachineImageRecord = {
+  image_url: string
+  is_primary: boolean
+  sort_order: number
+}
 
 type Machine = {
   id: string
@@ -33,7 +41,8 @@ type Machine = {
   status?: string
   purchase_price?: number
   purchase_date?: string
-  qr?: string
+  machine_images?: MachineImageRecord[]
+  primary_image_url?: string
 }
 
 export default function MachinesPage() {
@@ -60,6 +69,9 @@ export default function MachinesPage() {
     useState('')
 
   const [editingMachine, setEditingMachine] =
+    useState<Machine | null>(null)
+
+  const [imageMachine, setImageMachine] =
     useState<Machine | null>(null)
 
   const [editName, setEditName] =
@@ -127,7 +139,14 @@ export default function MachinesPage() {
 
     const { data, error } = await supabase
       .from('machines')
-      .select('*')
+      .select(`
+        *,
+        machine_images (
+          image_url,
+          is_primary,
+          sort_order
+        )
+      `)
       .order('created_at', {
         ascending: false
       })
@@ -142,35 +161,33 @@ export default function MachinesPage() {
     }
 
     const preparedMachines =
-      await Promise.all(
+      (data || []).map(
+        (machine) => {
+          const images =
+            (machine.machine_images || []) as MachineImageRecord[]
 
-        (data || []).map(
-          async (machine) => {
+          const primaryImage =
+            images.find(
+              image => image.is_primary
+            ) ||
+            [...images].sort(
+              (a, b) =>
+                (a.sort_order || 0) -
+                (b.sort_order || 0)
+            )[0]
 
-            let qr = ''
-
-            try {
-
-              qr =
-                await QRCode.toDataURL(
-                  machine.barcode ||
-                  machine.id
-                )
-
-            } catch (error) {
-
-              console.log(error)
-            }
-
-            return {
-              ...machine,
-              qr
-            }
+          return {
+            ...machine,
+            machine_images: images,
+            primary_image_url:
+              primaryImage?.image_url || ''
           }
-        )
+        }
       )
 
-    setMachines(preparedMachines)
+    setMachines(
+      preparedMachines as Machine[]
+    )
   }
 
   function closeCreateMachine() {
@@ -1029,6 +1046,84 @@ export default function MachinesPage() {
 
                   </div>
 
+                  <div className="
+                    aspect-[4/3]
+                    bg-gray-200
+                    relative
+                    overflow-hidden
+                  ">
+
+                    {machine.primary_image_url ? (
+
+                      <img
+                        src={machine.primary_image_url}
+                        alt={machine.name}
+                        className="
+                          w-full
+                          h-full
+                          object-cover
+                        "
+                      />
+
+                    ) : (
+
+                      <div className="
+                        w-full
+                        h-full
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
+                        text-gray-400
+                        gap-3
+                      ">
+
+                        <ImageIcon size={48} />
+
+                        <span className="font-semibold">
+                          Bez fotografie
+                        </span>
+
+                      </div>
+
+                    )}
+
+                    {role === 'admin' && (
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setImageMachine(machine)
+                        }
+                        className="
+                          absolute
+                          right-4
+                          bottom-4
+                          bg-black
+                          hover:bg-gray-800
+                          text-white
+                          rounded-2xl
+                          px-4
+                          py-3
+                          font-semibold
+                          flex
+                          items-center
+                          gap-2
+                          shadow-lg
+                          transition
+                        "
+                      >
+
+                        <Camera size={19} />
+
+                        Fotografie
+
+                      </button>
+
+                    )}
+
+                  </div>
+
                   <div className="p-6">
 
                     <div className="
@@ -1333,76 +1428,38 @@ export default function MachinesPage() {
 
                     )}
 
-                    <div className="
-                      bg-gray-100
-                      rounded-3xl
-                      p-5
-                    ">
-
-                      <div className="
+                    <button
+                      type="button"
+                      onClick={() =>
+                        generateQrLabelPdf({
+                          machineName:
+                            machine.name,
+                          barcode:
+                            machine.barcode ||
+                            machine.id
+                        })
+                      }
+                      className="
+                        w-full
+                        bg-gray-100
+                        hover:bg-gray-200
+                        transition
+                        py-4
+                        rounded-2xl
+                        font-semibold
+                        text-lg
                         flex
                         items-center
-                        gap-2
-                        mb-4
-                      ">
+                        justify-center
+                        gap-3
+                      "
+                    >
 
-                        <QrCode
-                          size={18}
-                        />
+                      <QrCode size={20} />
 
-                        <span className="
-                          font-semibold
-                        ">
+                      Tisk QR štítku
 
-                          QR štítek
-
-                        </span>
-
-                      </div>
-
-                      {machine.qr && (
-
-                        <img
-                          src={machine.qr}
-                          alt="QR"
-                          className="
-                            w-44
-                            h-44
-                            mx-auto
-                          "
-                        />
-
-                      )}
-
-                      <button
-                        onClick={() =>
-                          generateQrLabelPdf({
-                            machineName:
-                              machine.name,
-                            barcode:
-                              machine.barcode ||
-                              machine.id
-                          })
-                        }
-                        className="
-                          mt-5
-                          w-full
-                          bg-black
-                          hover:bg-gray-800
-                          transition
-                          text-white
-                          py-4
-                          rounded-2xl
-                          font-semibold
-                          text-lg
-                        "
-                      >
-
-                        Tisk QR štítku
-
-                      </button>
-
-                    </div>
+                    </button>
 
                   </div>
 
@@ -1748,6 +1805,33 @@ export default function MachinesPage() {
             </div>
 
           </div>
+
+        </div>
+
+      )}
+
+
+      {imageMachine && role === 'admin' && (
+
+        <div className="
+          fixed
+          inset-0
+          z-[60]
+          bg-black/60
+          flex
+          items-center
+          justify-center
+          p-4
+        ">
+
+          <MachineImages
+            machineId={imageMachine.id}
+            machineName={imageMachine.name}
+            onClose={async () => {
+              setImageMachine(null)
+              await loadMachines()
+            }}
+          />
 
         </div>
 
