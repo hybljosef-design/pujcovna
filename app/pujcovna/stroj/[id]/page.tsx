@@ -8,7 +8,10 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
+  RotateCcw,
   ShieldCheck,
   Wrench
 } from 'lucide-react'
@@ -40,12 +43,50 @@ type Reservation = {
   start_date: string
   end_date: string
   cancelled?: boolean
+  status?: string | null
 }
 
 function startOfDay(date: Date) {
   const value = new Date(date)
   value.setHours(0, 0, 0, 0)
   return value
+}
+
+function startOfMonth(date: Date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    1
+  )
+}
+
+function addMonths(
+  date: Date,
+  amount: number
+) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth() + amount,
+    1
+  )
+}
+
+function isSameDay(
+  first: Date,
+  second: Date
+) {
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  )
+}
+
+function isDateBeforeToday(date: Date) {
+  return (
+    startOfDay(date).getTime() <
+    startOfDay(new Date()).getTime()
+  )
 }
 
 function formatDate(date: Date) {
@@ -103,6 +144,11 @@ export default function PublicMachineDetailPage() {
   const [selectedEnd, setSelectedEnd] = useState('')
   const [selectedDates, setSelectedDates] = useState<string[]>([])
 
+  const [calendarMonth, setCalendarMonth] =
+    useState(
+      startOfMonth(new Date())
+    )
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -158,7 +204,8 @@ export default function PublicMachineDetailPage() {
             machine_id,
             start_date,
             end_date,
-            cancelled
+            cancelled,
+            status
           `)
           .eq('machine_id', machineId)
           .eq('cancelled', false)
@@ -177,7 +224,7 @@ export default function PublicMachineDetailPage() {
     setLoading(false)
   }
 
-  function isMachineBlockedOnDate(date: Date) {
+  function getDateStatus(date: Date) {
     const rentalBlocked = rentals.some(
       rental =>
         isDateInRange(
@@ -186,6 +233,10 @@ export default function PublicMachineDetailPage() {
           rental.end_date
         )
     )
+
+    if (rentalBlocked) {
+      return 'rental'
+    }
 
     const reservationBlocked = reservations.some(
       reservation =>
@@ -196,7 +247,25 @@ export default function PublicMachineDetailPage() {
         )
     )
 
-    return rentalBlocked || reservationBlocked
+    if (reservationBlocked) {
+      return 'reservation'
+    }
+
+    if (isDateBeforeToday(date)) {
+      return 'past'
+    }
+
+    return 'available'
+  }
+
+  function isMachineBlockedOnDate(date: Date) {
+    const status = getDateStatus(date)
+
+    return (
+      status === 'rental' ||
+      status === 'reservation' ||
+      status === 'past'
+    )
   }
 
   function hasBlockedDateInSelection(start: string, end: string) {
@@ -277,9 +346,24 @@ export default function PublicMachineDetailPage() {
     setSuccessMessage('')
     setErrorMessage('')
 
-    if (isMachineBlockedOnDate(day)) {
+    const dayStatus =
+      getDateStatus(day)
+
+    if (dayStatus === 'past') {
       setErrorMessage(
-        'Tento den je obsazený. Vyberte zelený termín.'
+        'Minulé datum nelze vybrat.'
+      )
+      return
+    }
+
+    if (
+      dayStatus === 'rental' ||
+      dayStatus === 'reservation'
+    ) {
+      setErrorMessage(
+        dayStatus === 'rental'
+          ? 'Tento den je stroj zapůjčený.'
+          : 'Tento den je už rezervovaný.'
       )
       return
     }
@@ -465,31 +549,6 @@ export default function PublicMachineDetailPage() {
       return
     }
 
-    try {
-      await fetch(
-        '/api/push/reservation',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            machineName: machine.name,
-            customerName:
-              `${firstName.trim()} ${lastName.trim()}`,
-            phone: phone.trim(),
-            startDate: selectedStart,
-            endDate: selectedEnd
-          })
-        }
-      )
-    } catch (pushError) {
-      console.log(
-        'Push oznámení se nepodařilo odeslat:',
-        pushError
-      )
-    }
-
     setSuccessMessage(
       'Rezervace byla odeslána. Ozveme se vám pro potvrzení termínu.'
     )
@@ -536,18 +595,61 @@ export default function PublicMachineDetailPage() {
     }
   }, [rentals, reservations])
 
-  const nextDays = useMemo(() => {
-    const days = []
-    const today = startOfDay(new Date())
+  const calendarDays = useMemo(() => {
+    const firstDay =
+      startOfMonth(calendarMonth)
 
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
+    const firstWeekday =
+      (firstDay.getDay() + 6) % 7
+
+    const gridStart =
+      new Date(firstDay)
+
+    gridStart.setDate(
+      firstDay.getDate() - firstWeekday
+    )
+
+    const days: Date[] = []
+
+    for (let i = 0; i < 42; i++) {
+      const date =
+        new Date(gridStart)
+
+      date.setDate(
+        gridStart.getDate() + i
+      )
+
       days.push(date)
     }
 
     return days
-  }, [])
+  }, [calendarMonth])
+
+  const canGoToPreviousMonth =
+    startOfMonth(calendarMonth).getTime() >
+    startOfMonth(new Date()).getTime()
+
+  function goToPreviousMonth() {
+    if (!canGoToPreviousMonth) return
+
+    setCalendarMonth(
+      value => addMonths(value, -1)
+    )
+  }
+
+  function goToNextMonth() {
+    setCalendarMonth(
+      value => addMonths(value, 1)
+    )
+  }
+
+  function clearSelectedDates() {
+    setSelectedStart('')
+    setSelectedEnd('')
+    setSelectedDates([])
+    setErrorMessage('')
+    setSuccessMessage('')
+  }
 
   const selectedDays =
     selectedDates.length
@@ -673,59 +775,168 @@ export default function PublicMachineDetailPage() {
             Zelené dny jsou volné, červené jsou obsazené. Vyberte jeden den, více dní postupně, nebo klikněte na první a poslední den delšího termínu.
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            {nextDays.map(day => {
-              const blocked = isMachineBlockedOnDate(day)
-              const value = toDateInputValue(day)
+          <div className="border rounded-3xl overflow-hidden">
 
-              const selected =
-                selectedDates.includes(value)
+            <div className="
+              flex
+              items-center
+              justify-between
+              gap-4
+              p-4
+              lg:p-5
+              border-b
+              bg-gray-50
+            ">
 
-              return (
-                <button
-                  key={day.toISOString()}
-                  type="button"
-                  disabled={blocked}
-                  onClick={() => selectDay(day)}
-                  className={`
-                    rounded-2xl
-                    p-4
-                    text-center
-                    border
-                    font-bold
-                    transition
+              <button
+                type="button"
+                onClick={goToPreviousMonth}
+                disabled={!canGoToPreviousMonth}
+                className="
+                  rounded-2xl
+                  p-3
+                  bg-white
+                  border
+                  hover:bg-gray-100
+                  disabled:opacity-30
+                  disabled:cursor-not-allowed
+                  transition
+                "
+              >
+                <ChevronLeft size={22} />
+              </button>
 
-                    ${blocked
-                      ? 'bg-red-50 text-red-700 border-red-200 cursor-not-allowed'
-                      : selected
-                        ? 'bg-black text-white border-black'
-                        : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'}
-                  `}
-                >
-                  <div className="text-sm">
-                    {day.toLocaleDateString(
-                      'cs-CZ',
-                      {
-                        weekday: 'short'
-                      }
-                    )}
-                  </div>
+              <h3 className="
+                text-xl
+                lg:text-2xl
+                font-black
+                capitalize
+                text-center
+              ">
+                {calendarMonth.toLocaleDateString(
+                  'cs-CZ',
+                  {
+                    month: 'long',
+                    year: 'numeric'
+                  }
+                )}
+              </h3>
 
-                  <div className="text-xl">
-                    {day.getDate()}.
-                  </div>
+              <button
+                type="button"
+                onClick={goToNextMonth}
+                className="
+                  rounded-2xl
+                  p-3
+                  bg-white
+                  border
+                  hover:bg-gray-100
+                  transition
+                "
+              >
+                <ChevronRight size={22} />
+              </button>
 
-                  <div className="text-xs mt-1">
-                    {blocked
-                      ? 'Obsazeno'
-                      : selected
-                        ? 'Vybráno'
-                        : 'Volno'}
-                  </div>
-                </button>
-              )
-            })}
+            </div>
+
+            <div className="grid grid-cols-7 border-b bg-white">
+              {['Po','Út','St','Čt','Pá','So','Ne'].map(dayName => (
+                <div key={dayName} className="py-3 text-center text-sm font-bold text-gray-500">
+                  {dayName}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 bg-gray-200 gap-px">
+              {calendarDays.map(day => {
+                const value = toDateInputValue(day)
+                const selected = selectedDates.includes(value)
+                const status = getDateStatus(day)
+                const currentMonth = day.getMonth() === calendarMonth.getMonth()
+                const today = isSameDay(day, new Date())
+                const disabled = status !== 'available'
+                const statusLabel =
+                  status === 'rental'
+                    ? 'Půjčeno'
+                    : status === 'reservation'
+                      ? 'Rezervace'
+                      : status === 'past'
+                        ? 'Minulost'
+                        : 'Volno'
+
+                return (
+                  <button
+                    key={day.toISOString()}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => selectDay(day)}
+                    className={`
+                      min-h-[82px]
+                      lg:min-h-[98px]
+                      p-2
+                      lg:p-3
+                      text-left
+                      transition
+                      relative
+                      ${!currentMonth ? 'opacity-35' : ''}
+                      ${selected
+                        ? 'bg-black text-white'
+                        : status === 'rental'
+                          ? 'bg-red-100 text-red-800 cursor-not-allowed'
+                          : status === 'reservation'
+                            ? 'bg-amber-100 text-amber-800 cursor-not-allowed'
+                            : status === 'past'
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-green-50 text-green-800 hover:bg-green-100'}
+                    `}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="text-lg lg:text-xl font-black">
+                        {day.getDate()}
+                      </span>
+                      {today && (
+                        <span className={`text-[10px] lg:text-xs rounded-full px-2 py-1 font-bold ${selected ? 'bg-white text-black' : 'bg-black text-white'}`}>
+                          Dnes
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-[10px] lg:text-xs font-bold leading-tight">
+                      {selected ? 'Vybráno' : statusLabel}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          <div className="flex flex-wrap gap-3 mt-5 text-sm font-semibold">
+            <div className="inline-flex items-center gap-2"><span className="w-4 h-4 rounded bg-green-100 border border-green-300" />Volno</div>
+            <div className="inline-flex items-center gap-2"><span className="w-4 h-4 rounded bg-amber-100 border border-amber-300" />Rezervace</div>
+            <div className="inline-flex items-center gap-2"><span className="w-4 h-4 rounded bg-red-100 border border-red-300" />Půjčeno</div>
+            <div className="inline-flex items-center gap-2"><span className="w-4 h-4 rounded bg-gray-100 border border-gray-300" />Minulost</div>
+            <div className="inline-flex items-center gap-2"><span className="w-4 h-4 rounded bg-black" />Vybráno</div>
+          </div>
+
+          {selectedDates.length > 0 && (
+            <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-black text-white rounded-2xl p-4">
+              <div>
+                <div className="text-sm text-gray-300">Vybraný termín</div>
+                <div className="text-lg font-black">
+                  {selectedStart === selectedEnd
+                    ? formatDate(new Date(selectedStart))
+                    : `${formatDate(new Date(selectedStart))} – ${formatDate(new Date(selectedEnd))}`}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearSelectedDates}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-black px-4 py-3 font-bold"
+              >
+                <RotateCcw size={18} />
+                Zrušit výběr
+              </button>
+            </div>
+          )}
         </div>
 
         <aside className="space-y-6">
